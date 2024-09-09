@@ -1,9 +1,16 @@
 {
+  "name": "solana-hub",
+  "private": true,
   "license": "ISC",
   "scripts": {
+    "app:dev": "yarn workspace app dev",
+    "build": "cargo build",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
   },
+  "workspaces": [
+    "app"
+  ],
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1"
   },
