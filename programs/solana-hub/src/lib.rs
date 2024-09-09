@@ -1,30 +1,32 @@
 use anchor_lang::prelude::*;
-use solana_program::sysvar::clock::Clock;
 
 // use anchor_spl::{
 //     associated_token::AssociatedToken,
 //     token::{Mint, Token, TokenAccount},
 // };
 
-declare_id!("68LstwZhYt14pDyVtzLKQ9yfXntNDauhAaH5TMQD1fRj");
+declare_id!("EsE5KPaDVc5wrrmJSDCUbaWSds35x56A3XkDUKkexHb6");
 
 #[program]
 pub mod solana_hub {
+    use std::ops::Add;
+
     use super::*;
 
     pub fn register_collection(
         ctx: Context<RegisterCollection>,
-        name: String,
-        quantity: u16,
-        timestamp_to_close: i64,
+        _name: String,
+        _quantity: u16,
+        seconds_to_close: u64,
     ) -> Result<()> {
-        msg!(
-            "{0},{1},{2},{3}",
-            ctx.accounts.auction.key(),
-            name,
-            quantity.to_string(),
-            timestamp_to_close.to_string()
-        );
+        let get_clock = Clock::get();
+        if let Ok(clock) = get_clock {
+            let current_timestamp = clock.unix_timestamp;
+            ctx.accounts.auction.creator = ctx.accounts.creator.key();
+            let timestamp_to_close = current_timestamp.add(seconds_to_close as i64);
+            ctx.accounts.auction.timestamp_to_close = timestamp_to_close;
+            msg!("{0} and {1}", current_timestamp, timestamp_to_close,)
+        }
         Ok(())
     }
 
@@ -58,7 +60,7 @@ pub mod solana_hub {
 }
 
 #[derive(Accounts)]
-#[instruction(name:String, quantity:u16, timestamp_to_close:i64)]
+#[instruction(name:String, quantity:u16, minutes_to_close:u64)]
 pub struct RegisterCollection<'info> {
     #[account(
         init,
