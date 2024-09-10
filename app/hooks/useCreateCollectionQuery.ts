@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 
 export type Collection = {
@@ -12,23 +11,14 @@ export type CollectionResults = {
   imageUrl: string;
 };
 
-const generateRandomString = () => {
-  const array = new Uint8Array(10);
-  crypto.getRandomValues(array);
-  return Array.from(array)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-};
-
-export function useCreateCollectionQuery(collection: Array<Collection>) {
-  const [key, setKey] = useState(generateRandomString());
-  useEffect(() => {
-    setKey(generateRandomString());
-  }, [collection]);
-
+export function useCreateCollectionQuery(
+  key: string,
+  collection: Array<Collection>
+) {
   const queries = useQueries({
     queries: collection.map((collection, idx) => ({
       queryKey: [key, idx],
+      staleTime: Infinity,
       queryFn: async () => {
         const blob = await (await fetch(collection.image)).blob();
         const formData = new FormData();
