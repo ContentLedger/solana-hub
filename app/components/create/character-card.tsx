@@ -11,9 +11,10 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import React, { useCallback, useRef } from "react";
-import { DotsHorizontalIcon, PersonIcon } from "@radix-ui/react-icons";
+import { DotsHorizontalIcon, ImageIcon } from "@radix-ui/react-icons";
 import { AspectRatio } from "../ui/aspect-ratio";
-import { ImageWithFallback } from "../image-with-fallback";
+import { Textarea } from "../ui/textarea";
+import { ImageDropTarget } from "../image-drop-target";
 
 export type CharacterCardData = {
   name: string;
@@ -37,15 +38,15 @@ export function CharacterCard({
 }: CharacterCardProps) {
   const formRefs = useRef({
     name: null as HTMLInputElement | null,
-    description: null as HTMLInputElement | null,
-    image: null as HTMLInputElement | null,
+    description: null as HTMLTextAreaElement | null,
+    image,
   });
 
   const handleChange = useCallback(() => {
     onChange?.({
       name: formRefs.current["name"]?.value ?? "",
       description: formRefs.current["description"]?.value ?? "",
-      image: formRefs.current["image"]?.value ?? "",
+      image: formRefs.current["image"] ?? "",
     });
   }, [onChange]);
 
@@ -53,9 +54,17 @@ export function CharacterCard({
     onAdd?.({
       name: formRefs.current["name"]?.value ?? "",
       description: formRefs.current["description"]?.value ?? "",
-      image: formRefs.current["image"]?.value ?? "",
+      image: formRefs.current["image"] ?? "",
     });
   }, [onAdd]);
+
+  const handleDrop = useCallback(
+    (dataUrl: string) => {
+      formRefs.current["image"] = dataUrl;
+      handleChange();
+    },
+    [handleChange]
+  );
 
   const submitEnabled = name && description && image && editable;
 
@@ -65,54 +74,46 @@ export function CharacterCard({
         <CardTitle>{name || <DotsHorizontalIcon />}</CardTitle>
       </CardHeader>
       <CardContent className="flex gap-12">
-        <div className="w-40">
+        <div className="w-48 flex-shrink-0">
           <AspectRatio ratio={1 / 1}>
-            <ImageWithFallback
+            <ImageDropTarget
               src={image}
-              alt={name}
-              fill={true}
-              className="object-cover w-full h-full rounded-md border-2"
-              fallback={() => (
-                <PersonIcon className="object-center w-full h-full rounded-md border-2 text-muted" />
-              )}
-            />
+              onDrop={handleDrop}
+              disabled={!editable}
+            >
+              <div className="flex flex-col items-center justify-center w-full h-full p-4 text-muted">
+                <ImageIcon className="w-full h-full text-muted" />
+                <span className="text-xs">Drag & Drop Image</span>
+              </div>
+            </ImageDropTarget>
           </AspectRatio>
         </div>
         <form className="w-full">
-          <div className="grid lg:grid-cols-[max-content_1fr] grid-cols-1 w-full items-center gap-2 gap-x-4">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              ref={(el) => void (formRefs.current["name"] = el)}
-              name="name"
-              placeholder="Name of your character"
-              value={name}
-              disabled={!editable}
-              onChange={handleChange}
-            />
+          <div className="grid w-full items-center gap-4">
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                ref={(el) => void (formRefs.current["name"] = el)}
+                name="name"
+                placeholder="Name of your character"
+                value={name}
+                disabled={!editable}
+                onChange={handleChange}
+              />
+            </div>
 
-            <Label htmlFor="description" className="pt-2 lg:pt-0">
-              Description
-            </Label>
-            <Input
-              ref={(el) => void (formRefs.current["description"] = el)}
-              name="description"
-              placeholder="Description"
-              value={description}
-              disabled={!editable}
-              onChange={handleChange}
-            />
-
-            <Label htmlFor="image" className="pt-2 lg:pt-0">
-              Image
-            </Label>
-            <Input
-              ref={(el) => void (formRefs.current["image"] = el)}
-              name="image"
-              placeholder="Image URL"
-              value={image}
-              disabled={!editable}
-              onChange={handleChange}
-            />
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                className="min-h-[102px]"
+                ref={(el) => void (formRefs.current["description"] = el)}
+                name="description"
+                placeholder="Description"
+                value={description}
+                disabled={!editable}
+                onChange={handleChange}
+              />
+            </div>
           </div>
         </form>
       </CardContent>

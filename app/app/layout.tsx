@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { AnchorWalletProvider } from "@/components/anchor-wallet-provider";
+import { QueryProvider } from "@/components/query-provider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -31,22 +32,24 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AnchorWalletProvider>
-            <div className="min-h-screen">
-              <Header className="sticky top-0 z-50" />
-              <main>{children}</main>
-              <footer className="text-center py-4 sticky top-[100vh]">
-                2024 © Content Ledger
-              </footer>
-            </div>
-          </AnchorWalletProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AnchorWalletProvider>
+              <div className="min-h-screen">
+                <Header className="sticky top-0 z-50" />
+                <main>{children}</main>
+                <footer className="flex gap-6 flex-wrap items-center justify-center py-4 sticky top-[100vh]">
+                  2024 © Content Ledger
+                </footer>
+              </div>
+            </AnchorWalletProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -1,27 +1,35 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import {
   CharacterCard,
   CharacterCardData,
 } from "@/components/create/character-card";
 import { Button } from "@/components/ui/button";
-import { useCallback, useState } from "react";
+import { useAppState } from "@/hooks/useAppState";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { CreateCollectionDialog } from "@/components/create/create-collection-dialog";
 
 export default function Create() {
-  const [collection, setCollection] = useState<CharacterCardData[]>([
-    { name: "", description: "", image: "" },
-  ]);
+  const collection = useAppState((state) => state.collection);
+  const { add, last, clear } = useAppState((state) => state.actions);
+  const [submit, setSubmit] = useState(false);
 
   const handleAdd = useCallback(() => {
-    setCollection((prev) => [
-      ...prev,
-      { name: "", description: "", image: "" },
-    ]);
-  }, []);
+    add({ name: "", description: "", image: "" });
+  }, [add]);
 
-  const handleChange = useCallback((data: CharacterCardData) => {
-    setCollection((prev) => prev.slice(0, -1).concat(data));
-  }, []);
+  const handleChange = useCallback(
+    (data: CharacterCardData) => {
+      last(data);
+    },
+    [last]
+  );
+
+  const handleCompleted = useCallback(() => {
+    setSubmit(false);
+    clear();
+  }, [clear]);
 
   return (
     <div className="flex justify-stretch">
@@ -39,9 +47,18 @@ export default function Create() {
           ))}
         </div>
         <div className="flex justify-end mt-4">
-          <Button variant="outline" className="text-lg">
-            Create Collection
-          </Button>
+          <Dialog onOpenChange={(open) => setSubmit(open)}>
+            <DialogTrigger asChild>
+              <Button variant="default" className="text-lg">
+                Create Collection
+              </Button>
+            </DialogTrigger>
+            <CreateCollectionDialog
+              collection={collection}
+              open={submit}
+              onCompleted={handleCompleted}
+            />
+          </Dialog>
         </div>
       </div>
     </div>
