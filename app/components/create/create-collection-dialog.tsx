@@ -1,5 +1,4 @@
 import {
-  DialogClose,
   DialogTitle,
   DialogContent,
   DialogFooter,
@@ -8,7 +7,7 @@ import {
 import { Label } from "../ui/label";
 import { useCreateCollectionQuery } from "@/hooks/useCreateCollectionQuery";
 import { Progress } from "../ui/progress";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export type CreateCollectionDialogProps = {
   open?: boolean;
