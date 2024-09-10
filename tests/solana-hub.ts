@@ -12,16 +12,21 @@ const accountWithLamports = anchor.web3.Keypair.fromSecretKey(
 
 const COLLECTION_NAME = "La Piedra Filosofal 12";
 const NFT_LIST = [
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
-  "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
+  {
+    name: "Harry Potter",
+    uri: "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
+    symbol: "SHUB",
+  },
+  {
+    name: "Hermione Granger",
+    uri: "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
+    symbol: "SHUB",
+  },
+  {
+    name: "Ron Weasley",
+    uri: "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
+    symbol: "SHUB",
+  }
 ];
 
 const predictAuction = (program: Program<SolanaHub>, name: string) => {
@@ -96,33 +101,34 @@ describe("solana-hub", () => {
 
   const program = anchor.workspace.SolanaHub as Program<SolanaHub>;
 
-  // it("Register collection!", async () => {
-  //   // Add your test here.
-  //   const txInstruction = await program.methods
-  //     .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
-  //     .accounts({ creator: accountWithLamports.publicKey })
-  //     .instruction();
-  //   const transaction  = new anchor.web3.Transaction().add(txInstruction);
-  //   transaction.recentBlockhash = (
-  //     await program.provider.connection.getLatestBlockhash("finalized")
-  //   ).blockhash;
-  //   transaction.sign(accountWithLamports);
-  //   const txHash = await program.provider.connection.sendRawTransaction(
-  //     transaction.serialize(),
-  //     { preflightCommitment: "confirmed" }
-  //   );
-  //   const confirmation = await program.provider.connection.confirmTransaction(
-  //     txHash,
-  //     "confirmed"
-  //   );
-  //   if (!confirmation.value.err) {
-  //     console.log("Your transaction signature", txHash);
-  //     const auctionAccount = predictAuction(program, COLLECTION_NAME);
-  //     const accountInfo = await program.account.auction.fetch(auctionAccount);
-  //     console.log(accountInfo.timestampToClose.toNumber());
-  //     console.log(accountInfo.nftList);
-  //   }
-  // });
+  it("Register collection!", async () => {
+    // Add your test here.
+    const txInstruction = await program.methods
+      .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
+      .accounts({ creator: accountWithLamports.publicKey })
+      .instruction();
+    const transaction = new anchor.web3.Transaction().add(txInstruction);
+    transaction.recentBlockhash = (
+      await program.provider.connection.getLatestBlockhash("finalized")
+    ).blockhash;
+    transaction.sign(accountWithLamports);
+    const txHash = await program.provider.connection.sendRawTransaction(
+      transaction.serialize(),
+      { preflightCommitment: "confirmed" }
+    );
+    const confirmation = await program.provider.connection.confirmTransaction(
+      txHash,
+      "confirmed"
+    );
+    if (!confirmation.value.err) {
+      console.log("Your transaction signature", txHash);
+      const auctionAccount = predictAuction(program, COLLECTION_NAME);
+      const accountInfo = await program.account.auction.fetch(auctionAccount);
+      console.log(accountInfo.timestampToClose.toNumber());
+      console.log(accountInfo.nftList);
+    }
+  });
+  
   it("Claim nft!", async () => {
     // Add your test here.
     const nftId = 1;
