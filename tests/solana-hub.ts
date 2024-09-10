@@ -10,7 +10,7 @@ const accountWithLamports = anchor.web3.Keypair.fromSecretKey(
   )
 );
 
-const COLLECTION_NAME = "La Piedra Filosofal 10";
+const COLLECTION_NAME = "La Piedra Filosofal 12";
 const NFT_LIST = [
   "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
   "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
@@ -50,7 +50,6 @@ const predictMetadataAccount = (
     ],
     TOKEN_METADATA_PROGRAM_ID
   );
-
   return metadataAddress;
 };
 
@@ -65,16 +64,16 @@ const predictNft = (
       Buffer.from("nft"),
       Buffer.from(name),
       Buffer.from("*"),
-      u16ToBigEndianBuffer(nftId),
+      u16ToLEBuffer(nftId),
     ],
     SOLANA_HUB_PROGRAM_ID
   );
   return nft;
 };
 
-function u16ToBigEndianBuffer(num: number): Buffer {
+function u16ToLEBuffer(num: number): Buffer {
   const buffer = Buffer.alloc(2); // Allocate 2 bytes for a 16-bit integer
-  buffer.writeUInt16BE(num, 0); // Write the number as big-endian at offset 0
+  buffer.writeInt16LE(num, 0); // Write the number as big-endian at offset 0
   return buffer;
 }
 
@@ -85,7 +84,7 @@ const predictAuctionNft = (
 ) => {
   const SOLANA_HUB_PROGRAM_ID = new anchor.web3.PublicKey(program.programId);
   const [auctionNft] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("auction"), Buffer.from(name), u16ToBigEndianBuffer(nftId)],
+    [Buffer.from("auction"), Buffer.from(name), u16ToLEBuffer(nftId)],
     SOLANA_HUB_PROGRAM_ID
   );
   return auctionNft;
@@ -103,7 +102,7 @@ describe("solana-hub", () => {
   //     .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
   //     .accounts({ creator: accountWithLamports.publicKey })
   //     .instruction();
-  //   const transaction = new anchor.web3.Transaction().add(txInstruction);
+  //   const transaction  = new anchor.web3.Transaction().add(txInstruction);
   //   transaction.recentBlockhash = (
   //     await program.provider.connection.getLatestBlockhash("finalized")
   //   ).blockhash;
@@ -127,7 +126,6 @@ describe("solana-hub", () => {
   it("Claim nft!", async () => {
     // Add your test here.
     const nftId = 1;
-    console.log(predictNft(program, COLLECTION_NAME, nftId));
     const txInstruction = await program.methods
       .claim(COLLECTION_NAME, nftId)
       .accounts({

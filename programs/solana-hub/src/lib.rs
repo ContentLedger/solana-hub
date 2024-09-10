@@ -76,7 +76,13 @@ pub mod solana_hub {
             uses: None,
         };
 
-        let nft_signer_seeds = &["nft".as_bytes(), name.as_bytes(), &nft_id.to_le_bytes()];
+        let nft_signer_seeds = &[
+            "nft".as_bytes(),
+            name.as_bytes(),
+            "*".as_bytes(),
+            &nft_id.to_le_bytes(),
+            &[ctx.bumps.nft],
+        ];
         let nft_signer = [&nft_signer_seeds[..]];
         let metadata_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_metadata_program.to_account_info(),
@@ -92,20 +98,20 @@ pub mod solana_hub {
             &nft_signer,
         );
 
+        create_metadata_accounts_v3(metadata_ctx, nft_data, false, true, None)?;
+
         mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 MintTo {
                     authority: ctx.accounts.nft.to_account_info(),
-                    to: ctx.accounts.claimer.to_account_info(),
+                    to: ctx.accounts.receiver_account.to_account_info(),
                     mint: ctx.accounts.nft.to_account_info(),
                 },
                 &nft_signer,
             ),
             1,
         )?;
-
-        create_metadata_accounts_v3(metadata_ctx, nft_data, false, true, None)?;
 
         Ok(())
     }
@@ -160,19 +166,19 @@ pub struct Claim<'info> {
         bump
     )]
     pub auction: Account<'info, Auction>,
+    // #[account(
+    //     //TODO: Remove init_if_needed,payer,space (THE ACCOUNT SHOULD BE ALREADY INITIALIZED)
+    //     init_if_needed,
+    //     seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
+    //     bump,
+    //     payer=claimer,
+    //     space = NftAuction::MAX_SIZE,
+    //     //TODO: Uncomment this
+    //     //constraint = nft_auction.bidder.key() == claimer.key()
+    // )]
+    // pub nft_auction: Account<'info, NftAuction>,
     #[account(
-        init_if_needed,//this because maybe none bid but we need to check into it
-        constraint = !name.contains("*"),//To avoid collisions  name: name, nft_id: 11 and name: name1 nft_id:1
-        seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
-        bump,
-        payer=claimer,
-        space = NftAuction::MAX_SIZE,
-        //TODO: Uncomment this
-        //constraint = nft_auction.bidder.key() == claimer.key()
-    )]
-    pub nft_auction: Account<'info, NftAuction>,
-    #[account(
-        init,
+        init_if_needed,
         constraint = !name.contains("*"),//To avoid collisions  name: name, nft_id: 11 and name: name1 nft_id:1
         seeds = ["nft".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
         bump,
@@ -182,7 +188,7 @@ pub struct Claim<'info> {
     )]
     pub nft: Account<'info, Mint>,
     #[account(
-        init,
+        init_if_needed,
         payer = claimer,
         associated_token::mint = nft,
         associated_token::authority = claimer,
