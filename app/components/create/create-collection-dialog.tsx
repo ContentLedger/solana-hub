@@ -7,28 +7,45 @@ import {
 import { Label } from "../ui/label";
 import { useCreateCollectionQuery } from "@/hooks/useCreateCollectionQuery";
 import { Progress } from "../ui/progress";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export type CreateCollectionDialogProps = {
   open?: boolean;
-  onCompleted?: () => void;
-  collection: Array<{
-    name: string;
-    description: string;
-    image: string;
-  }>;
+  onCompleted?: (key: string, results: CreateCollectionResults) => void;
+  collection: {
+    id: string;
+    items: Array<{
+      name: string;
+      description: string;
+      image: string;
+    }>;
+  };
 };
 
-function CreateCollectionContent({
+export type CreateCollectionResults = {
+  metadataUrl: string;
+  imageUrl: string;
+}[];
+
+export function CreateCollectionContent({
   collection,
   onCompleted,
 }: Pick<CreateCollectionDialogProps, "collection" | "onCompleted">) {
-  const { progress, isSuccess, isError } = useCreateCollectionQuery(collection);
+  const completed = useRef(new Set<string>());
+  const { progress, isSuccess, isError, queries } = useCreateCollectionQuery(
+    collection.id,
+    collection.items
+  );
+
   useEffect(() => {
-    if (isSuccess) {
-      onCompleted?.();
+    if (isSuccess && !completed.current.has(collection.id)) {
+      const results = queries.map(
+        (query) => query?.data ?? { metadataUrl: "", imageUrl: "" }
+      );
+      onCompleted?.(collection.id, results);
+      completed.current.add(collection.id);
     }
-  }, [isSuccess, onCompleted]);
+  }, [collection.id, isSuccess, onCompleted, queries]);
 
   return (
     <DialogContent className="sm:max-w-md">
@@ -39,7 +56,7 @@ function CreateCollectionContent({
         <div className="grid flex-1 gap-2">
           <Label className="sr-only">Progress</Label>
           <Progress
-            value={(progress / collection.length) * 100}
+            value={(progress / collection.items.length) * 100}
             className="w-full"
           />
         </div>

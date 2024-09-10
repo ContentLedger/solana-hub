@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   CharacterCard,
   CharacterCardData,
@@ -8,12 +8,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAppState } from "@/hooks/useAppState";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { CreateCollectionDialog } from "@/components/create/create-collection-dialog";
+import {
+  CreateCollectionDialog,
+  CreateCollectionResults,
+} from "@/components/create/create-collection-dialog";
 
 export default function Create() {
   const collection = useAppState((state) => state.collection);
   const { add, last, clear } = useAppState((state) => state.actions);
   const [submit, setSubmit] = useState(false);
+
+  // TODO: refactor to support multiple collections
+  // TODO: reload the page for a new collection until I fix this in the data store
+  const namedCollection = useMemo(
+    () => ({
+      id: Math.random().toString(36).substring(7),
+      items: collection,
+    }),
+    [collection]
+  );
 
   const handleAdd = useCallback(() => {
     add({ name: "", description: "", image: "" });
@@ -26,10 +39,14 @@ export default function Create() {
     [last]
   );
 
-  const handleCompleted = useCallback(() => {
-    setSubmit(false);
-    clear();
-  }, [clear]);
+  const handleCompleted = useCallback(
+    (id: string, results: CreateCollectionResults) => {
+      console.log("Collection created", id, results);
+      setSubmit(false);
+      clear();
+    },
+    [clear]
+  );
 
   return (
     <div className="flex justify-stretch">
@@ -54,7 +71,7 @@ export default function Create() {
               </Button>
             </DialogTrigger>
             <CreateCollectionDialog
-              collection={collection}
+              collection={namedCollection}
               open={submit}
               onCompleted={handleCompleted}
             />
