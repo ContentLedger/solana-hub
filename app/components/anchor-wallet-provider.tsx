@@ -15,8 +15,8 @@ require("@solana/wallet-adapter-react-ui/styles.css");
 export type AnchorWalletProviderProps = React.PropsWithChildren<object>;
 
 export function AnchorWalletProvider({ children }: AnchorWalletProviderProps) {
-  const network = process.env
-    .NEXT_PUBLIC_WALLET_NETWORK as WalletAdapterNetwork;
+  const network = (process.env.NEXT_PUBLIC_WALLET_NETWORK ??
+    WalletAdapterNetwork.Devnet) as WalletAdapterNetwork;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   const wallets = useMemo(
     () => [],
