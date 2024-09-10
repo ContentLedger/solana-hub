@@ -137,7 +137,8 @@ pub struct Bid<'info> {
     pub auction: Account<'info, Auction>,
     #[account(
         init_if_needed,
-        seeds = ["nft_auction".as_bytes(),name.as_bytes(),&nft_id.to_be_bytes()],
+        constraint = !name.contains("*"),
+        seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_be_bytes()],
         bump,
         payer = bidder,
         space = NftAuction::MAX_SIZE,
@@ -161,7 +162,8 @@ pub struct Claim<'info> {
     pub auction: Account<'info, Auction>,
     #[account(
         init_if_needed,//this because maybe none bid but we need to check into it
-        seeds = ["nft_auction".as_bytes(),name.as_bytes(),&nft_id.to_be_bytes()],
+        constraint = !name.contains("*"),//To avoid collisions  name: name, nft_id: 11 and name: name1 nft_id:1
+        seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_be_bytes()],
         bump,
         payer=claimer,
         space = NftAuction::MAX_SIZE,
@@ -171,7 +173,8 @@ pub struct Claim<'info> {
     pub nft_auction: Account<'info, NftAuction>,
     #[account(
         init,
-        seeds = ["nft".as_bytes(),name.as_bytes(),&nft_id.to_be_bytes()],
+        constraint = !name.contains("*"),//To avoid collisions  name: name, nft_id: 11 and name: name1 nft_id:1
+        seeds = ["nft".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_be_bytes()],
         bump,
         payer = claimer,
         mint::decimals = 0,

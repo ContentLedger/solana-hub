@@ -61,7 +61,12 @@ const predictNft = (
 ) => {
   const SOLANA_HUB_PROGRAM_ID = new anchor.web3.PublicKey(program.programId);
   const [nft] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("nft"), Buffer.from(name), u16ToBigEndianBuffer(nftId)],
+    [
+      Buffer.from("nft"),
+      Buffer.from(name),
+      Buffer.from("*"),
+      u16ToBigEndianBuffer(nftId),
+    ],
     SOLANA_HUB_PROGRAM_ID
   );
   return nft;
