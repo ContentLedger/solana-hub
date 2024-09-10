@@ -10,7 +10,14 @@ const accountWithLamports = anchor.web3.Keypair.fromSecretKey(
   )
 );
 
-const COLLECTION_NAME = "La Piedra Filosofal 12";
+//4jqQQ61Pkxh7f2Gma4Kqf66iNzxcMCxkx7hPK4tepqF8
+const account2WithLamports = anchor.web3.Keypair.fromSecretKey(
+  bs58.decode(
+    "3WawKsMtXLTDoreSgo7uNjVvX2NfrCA66pHN6tPuxfzUiLEzHhX6aPWLHCZcatvzPhkXJX5HVyKYJp4CiyD2HJFU"
+  )
+);
+
+const COLLECTION_NAME = "La Piedra Filosofal 15";
 const NFT_LIST = [
   {
     name: "Harry Potter",
@@ -26,7 +33,7 @@ const NFT_LIST = [
     name: "Ron Weasley",
     uri: "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
     symbol: "SHUB",
-  }
+  },
 ];
 
 const predictAuction = (program: Program<SolanaHub>, name: string) => {
@@ -89,73 +96,123 @@ const predictAuctionNft = (
 ) => {
   const SOLANA_HUB_PROGRAM_ID = new anchor.web3.PublicKey(program.programId);
   const [auctionNft] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("auction"), Buffer.from(name), u16ToLEBuffer(nftId)],
+    [
+      Buffer.from("nft_auction"),
+      Buffer.from(name),
+      Buffer.from("*"),
+      u16ToLEBuffer(nftId),
+    ],
     SOLANA_HUB_PROGRAM_ID
   );
   return auctionNft;
 };
 
+//PRECONDITION; ADD LAMPORTS TO H9KwD9eQakjKuqanLpqxfEgBHPLniGsZTjpKyA9mXKgz AND 4jqQQ61Pkxh7f2Gma4Kqf66iNzxcMCxkx7hPK4tepqF8
 describe("solana-hub", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.SolanaHub as Program<SolanaHub>;
 
-  it("Register collection!", async () => {
-    // Add your test here.
-    const txInstruction = await program.methods
-      .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
-      .accounts({ creator: accountWithLamports.publicKey })
-      .instruction();
-    const transaction = new anchor.web3.Transaction().add(txInstruction);
-    transaction.recentBlockhash = (
-      await program.provider.connection.getLatestBlockhash("finalized")
-    ).blockhash;
-    transaction.sign(accountWithLamports);
-    const txHash = await program.provider.connection.sendRawTransaction(
-      transaction.serialize(),
-      { preflightCommitment: "confirmed" }
-    );
-    const confirmation = await program.provider.connection.confirmTransaction(
-      txHash,
-      "confirmed"
-    );
-    if (!confirmation.value.err) {
-      console.log("Your transaction signature", txHash);
-      const auctionAccount = predictAuction(program, COLLECTION_NAME);
-      const accountInfo = await program.account.auction.fetch(auctionAccount);
-      console.log(accountInfo.timestampToClose.toNumber());
-      console.log(accountInfo.nftList);
-    }
-  });
-  
-  it("Claim nft!", async () => {
+  // it("Register collection!", async () => {
+  //   // Add your test here.
+  //   const txInstruction = await program.methods
+  //     .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
+  //     .accounts({ creator: accountWithLamports.publicKey })
+  //     .instruction();
+  //   const transaction = new anchor.web3.Transaction().add(txInstruction);
+  //   transaction.recentBlockhash = (
+  //     await program.provider.connection.getLatestBlockhash("finalized")
+  //   ).blockhash;
+  //   transaction.sign(accountWithLamports);
+  //   const txHash = await program.provider.connection.sendRawTransaction(
+  //     transaction.serialize(),
+  //     { preflightCommitment: "confirmed" }
+  //   );
+  //   const confirmation = await program.provider.connection.confirmTransaction(
+  //     txHash,
+  //     "confirmed"
+  //   );
+  //   if (!confirmation.value.err) {
+  //     console.log("Your transaction signature", txHash);
+  //     const auctionAccount = predictAuction(program, COLLECTION_NAME);
+  //     const accountInfo = await program.account.auction.fetch(auctionAccount);
+  //     console.log(accountInfo.timestampToClose.toNumber());
+  //     console.log(accountInfo.nftList);
+  //   }
+  // });
+
+  it("Bid!", async () => {
     // Add your test here.
     const nftId = 1;
-    const txInstruction = await program.methods
-      .claim(COLLECTION_NAME, nftId)
-      .accounts({
-        metadata: predictMetadataAccount(program, COLLECTION_NAME, nftId),
-        claimer: accountWithLamports.publicKey,
-      })
-      .instruction();
-    const transaction = new anchor.web3.Transaction().add(txInstruction);
-    transaction.recentBlockhash = (
-      await program.provider.connection.getLatestBlockhash("finalized")
-    ).blockhash;
-    transaction.sign(accountWithLamports);
-    const txHash = await program.provider.connection.sendRawTransaction(
-      transaction.serialize(),
-      { preflightCommitment: "confirmed" }
-    );
-    const confirmation = await program.provider.connection.confirmTransaction(
-      txHash,
-      "confirmed"
-    );
-    if (!confirmation.value.err) {
-      console.log("Your transaction signature", txHash);
-      const nft = predictNft(program, COLLECTION_NAME, nftId);
-      console.log(nft.toBase58());
-    }
+    const auctionNft = predictAuctionNft(program, COLLECTION_NAME, nftId);
+
+    const bid = async (amountToBid: anchor.BN, bidder: anchor.web3.Keypair) => {
+      const accountInfo = await program.account.nftAuction.fetch(auctionNft);
+      const txInstruction = await program.methods
+        .bid(COLLECTION_NAME, nftId, amountToBid)
+        .accounts({
+          bidder: bidder.publicKey,
+          previousBidder: accountInfo.bidder,
+        })
+        .instruction();
+      const transaction = new anchor.web3.Transaction().add(txInstruction);
+      transaction.recentBlockhash = (
+        await program.provider.connection.getLatestBlockhash("finalized")
+      ).blockhash;
+      transaction.sign(bidder);
+      const txHash = await program.provider.connection.sendRawTransaction(
+        transaction.serialize(),
+        { preflightCommitment: "confirmed" }
+      );
+      const confirmation = await program.provider.connection.confirmTransaction(
+        txHash,
+        "confirmed"
+      );
+      console.log(txHash);
+      if (!confirmation.value.err) {
+        console.log("Your transaction signature", txHash);
+
+        const accountInfo = await program.account.nftAuction.fetch(auctionNft);
+        console.log(accountInfo);
+        console.log(
+          "balance",
+          await program.provider.connection.getBalance(auctionNft)
+        );
+      }
+    };
+
+    //await bid(new anchor.BN(0.01 * 10 ** 9), accountWithLamports);
+    await bid(new anchor.BN(0.02 * 10 ** 9), account2WithLamports);
   });
+
+  // it("Claim nft!", async () => {
+  //   // Add your test here.
+  //   const nftId = 1;
+  //   const txInstruction = await program.methods
+  //     .claim(COLLECTION_NAME, nftId)
+  //     .accounts({
+  //       metadata: predictMetadataAccount(program, COLLECTION_NAME, nftId),
+  //       claimer: accountWithLamports.publicKey,
+  //     })
+  //     .instruction();
+  //   const transaction = new anchor.web3.Transaction().add(txInstruction);
+  //   transaction.recentBlockhash = (
+  //     await program.provider.connection.getLatestBlockhash("finalized")
+  //   ).blockhash;
+  //   transaction.sign(accountWithLamports);
+  //   const txHash = await program.provider.connection.sendRawTransaction(
+  //     transaction.serialize(),
+  //     { preflightCommitment: "confirmed" }
+  //   );
+  //   const confirmation = await program.provider.connection.confirmTransaction(
+  //     txHash,
+  //     "confirmed"
+  //   );
+  //   if (!confirmation.value.err) {
+  //     console.log("Your transaction signature", txHash);
+  //     const nft = predictNft(program, COLLECTION_NAME, nftId);
+  //     console.log(nft.toBase58());
+  //   }
+  // });
 });
