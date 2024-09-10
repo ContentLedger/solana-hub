@@ -10,7 +10,24 @@ const accountWithLamports = anchor.web3.Keypair.fromSecretKey(
   )
 );
 
-const COLLECTION_NAME = "La Piedra Filosofal 6";
+const COLLECTION_NAME = "La Piedra Filosofal 12";
+const NFT_LIST = [
+  {
+    name: "Harry Potter",
+    uri: "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
+    symbol: "SHUB",
+  },
+  {
+    name: "Hermione Granger",
+    uri: "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
+    symbol: "SHUB",
+  },
+  {
+    name: "Ron Weasley",
+    uri: "https://arweave.net/trLCtzS7x9YlA3cpwCIdugdrEYghgT6mQEM7hmZDcA4",
+    symbol: "SHUB",
+  }
+];
 
 const predictAuction = (program: Program<SolanaHub>, name: string) => {
   const SOLANA_HUB_PROGRAM_ID = new anchor.web3.PublicKey(program.programId);
@@ -21,9 +38,47 @@ const predictAuction = (program: Program<SolanaHub>, name: string) => {
   return auction;
 };
 
-function u16ToBigEndianBuffer(num: number): Buffer {
+const predictMetadataAccount = (
+  program: Program<SolanaHub>,
+  name: string,
+  nftId: number
+) => {
+  const METADATA_SEED = "metadata";
+  const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
+    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+  );
+  const [metadataAddress] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from(METADATA_SEED),
+      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      predictNft(program, name, nftId).toBuffer(),
+    ],
+    TOKEN_METADATA_PROGRAM_ID
+  );
+  return metadataAddress;
+};
+
+const predictNft = (
+  program: Program<SolanaHub>,
+  name: string,
+  nftId: number
+) => {
+  const SOLANA_HUB_PROGRAM_ID = new anchor.web3.PublicKey(program.programId);
+  const [nft] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("nft"),
+      Buffer.from(name),
+      Buffer.from("*"),
+      u16ToLEBuffer(nftId),
+    ],
+    SOLANA_HUB_PROGRAM_ID
+  );
+  return nft;
+};
+
+function u16ToLEBuffer(num: number): Buffer {
   const buffer = Buffer.alloc(2); // Allocate 2 bytes for a 16-bit integer
-  buffer.writeUInt16BE(num, 0); // Write the number as big-endian at offset 0
+  buffer.writeInt16LE(num, 0); // Write the number as big-endian at offset 0
   return buffer;
 }
 
@@ -34,7 +89,7 @@ const predictAuctionNft = (
 ) => {
   const SOLANA_HUB_PROGRAM_ID = new anchor.web3.PublicKey(program.programId);
   const [auctionNft] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("auction"), Buffer.from(name), u16ToBigEndianBuffer(nftId)],
+    [Buffer.from("auction"), Buffer.from(name), u16ToLEBuffer(nftId)],
     SOLANA_HUB_PROGRAM_ID
   );
   return auctionNft;
@@ -49,7 +104,7 @@ describe("solana-hub", () => {
   it("Register collection!", async () => {
     // Add your test here.
     const txInstruction = await program.methods
-      .registerCollection(COLLECTION_NAME, 10, new anchor.BN(5 * 60))
+      .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
       .accounts({ creator: accountWithLamports.publicKey })
       .instruction();
     const transaction = new anchor.web3.Transaction().add(txInstruction);
@@ -61,9 +116,46 @@ describe("solana-hub", () => {
       transaction.serialize(),
       { preflightCommitment: "confirmed" }
     );
-    console.log("Your transaction signature", txHash);
-    // const auctionAccount = predictAuction(program, COLLECTION_NAME);
-    // const accountInfo = await program.account.auction.fetch(auctionAccount);
-    // console.log(accountInfo.timestampToClose.toNumber());
+    const confirmation = await program.provider.connection.confirmTransaction(
+      txHash,
+      "confirmed"
+    );
+    if (!confirmation.value.err) {
+      console.log("Your transaction signature", txHash);
+      const auctionAccount = predictAuction(program, COLLECTION_NAME);
+      const accountInfo = await program.account.auction.fetch(auctionAccount);
+      console.log(accountInfo.timestampToClose.toNumber());
+      console.log(accountInfo.nftList);
+    }
+  });
+  
+  it("Claim nft!", async () => {
+    // Add your test here.
+    const nftId = 1;
+    const txInstruction = await program.methods
+      .claim(COLLECTION_NAME, nftId)
+      .accounts({
+        metadata: predictMetadataAccount(program, COLLECTION_NAME, nftId),
+        claimer: accountWithLamports.publicKey,
+      })
+      .instruction();
+    const transaction = new anchor.web3.Transaction().add(txInstruction);
+    transaction.recentBlockhash = (
+      await program.provider.connection.getLatestBlockhash("finalized")
+    ).blockhash;
+    transaction.sign(accountWithLamports);
+    const txHash = await program.provider.connection.sendRawTransaction(
+      transaction.serialize(),
+      { preflightCommitment: "confirmed" }
+    );
+    const confirmation = await program.provider.connection.confirmTransaction(
+      txHash,
+      "confirmed"
+    );
+    if (!confirmation.value.err) {
+      console.log("Your transaction signature", txHash);
+      const nft = predictNft(program, COLLECTION_NAME, nftId);
+      console.log(nft.toBase58());
+    }
   });
 });
