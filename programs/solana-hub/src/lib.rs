@@ -76,7 +76,7 @@ pub mod solana_hub {
             uses: None,
         };
 
-        let nft_signer_seeds = &["nft".as_bytes(), name.as_bytes(), &nft_id.to_be_bytes()];
+        let nft_signer_seeds = &["nft".as_bytes(), name.as_bytes(), &nft_id.to_le_bytes()];
         let nft_signer = [&nft_signer_seeds[..]];
         let metadata_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_metadata_program.to_account_info(),
@@ -138,7 +138,7 @@ pub struct Bid<'info> {
     #[account(
         init_if_needed,
         constraint = !name.contains("*"),
-        seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_be_bytes()],
+        seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
         bump,
         payer = bidder,
         space = NftAuction::MAX_SIZE,
@@ -163,7 +163,7 @@ pub struct Claim<'info> {
     #[account(
         init_if_needed,//this because maybe none bid but we need to check into it
         constraint = !name.contains("*"),//To avoid collisions  name: name, nft_id: 11 and name: name1 nft_id:1
-        seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_be_bytes()],
+        seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
         bump,
         payer=claimer,
         space = NftAuction::MAX_SIZE,
@@ -174,7 +174,7 @@ pub struct Claim<'info> {
     #[account(
         init,
         constraint = !name.contains("*"),//To avoid collisions  name: name, nft_id: 11 and name: name1 nft_id:1
-        seeds = ["nft".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_be_bytes()],
+        seeds = ["nft".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
         bump,
         payer = claimer,
         mint::decimals = 0,
