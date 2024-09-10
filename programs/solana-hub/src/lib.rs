@@ -20,7 +20,7 @@ pub mod solana_hub {
         ctx: Context<RegisterCollection>,
         _name: String,
         seconds_to_close: u64,
-        nft_list: Vec<String>,
+        nft_list: Vec<NftMetadata>,
     ) -> Result<()> {
         let get_clock = Clock::get();
         if let Ok(clock) = get_clock {
@@ -54,17 +54,15 @@ pub mod solana_hub {
     pub fn claim(ctx: Context<Claim>, name: String, nft_id: u16) -> Result<()> {
         //TODO: claim only if timestamp_to_close
 
-        if nft_id as usize > ctx.accounts.auction.nft_list.len() {
-            return Ok(()); //TODO: Throw error
-        }
-
+        require!((nft_id as usize) < ctx.accounts.auction.nft_list.len(), ErrorCode::InvalidNftId);
+        
         let uri = ctx
             .accounts
             .auction
             .nft_list
             .get(nft_id as usize - 1)
             .unwrap()
-            .to_string();
+            .uri.clone();
 
         let nft_data: DataV2 = DataV2 {
             name: name.clone(),
@@ -203,12 +201,19 @@ pub struct Claim<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
+pub struct NftMetadata {
+    pub uri: String,
+    pub name: String,
+    pub symbol: String,
+}
+
 #[account]
 #[derive(Default)]
 pub struct Auction {
     pub creator: Pubkey,
     pub timestamp_to_close: i64,
-    pub nft_list: Vec<String>, //TODO: Vec<struct with metadata (uri, name, symbol)>
+    pub nft_list: Vec<NftMetadata>,
 }
 
 impl Auction {
@@ -227,4 +232,10 @@ pub struct NftAuction {
 
 impl NftAuction {
     pub const MAX_SIZE: usize = 8 + 2 + 32 + 8;
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("NFT ID invalid")]
+    InvalidNftId,
 }
