@@ -49,7 +49,9 @@ export function ImageDropTarget({
       onDragEnd={disabled ? undefined : handleDragLeave}
       className={cn(
         "flex items-center justify-center w-full h-full border-dashed rounded-md",
-        isDragging ? "border-primary border-4" : "border-muted border-2",
+        isDragging
+          ? "border-foreground border-4"
+          : "border-muted-foreground border-2",
         disabled ? "border-solid" : "cursor-pointer"
       )}
     >

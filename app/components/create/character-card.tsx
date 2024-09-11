@@ -81,8 +81,8 @@ export function CharacterCard({
               onDrop={handleDrop}
               disabled={!editable}
             >
-              <div className="flex flex-col items-center justify-center w-full h-full p-4 text-muted">
-                <ImageIcon className="w-full h-full text-muted" />
+              <div className="flex flex-col items-center justify-center w-full h-full p-4 text-muted-foreground">
+                <ImageIcon className="w-full h-full text-muted-foreground" />
                 <span className="text-xs">Drag & Drop Image</span>
               </div>
             </ImageDropTarget>

@@ -3,7 +3,12 @@ import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -37,12 +42,12 @@ export function WalletConnection() {
       (updatedAccountInfo) => {
         setBalance(updatedAccountInfo.lamports / LAMPORTS_PER_SOL);
       },
-      "confirmed"
+      { commitment: "confirmed" }
     );
 
     connection.getAccountInfo(publicKey).then((info) => {
       if (info) {
-        setBalance(info?.lamports / LAMPORTS_PER_SOL);
+        setBalance(info.lamports / LAMPORTS_PER_SOL);
       }
     });
   }, [publicKey, connection]);
@@ -67,7 +72,7 @@ export function WalletConnection() {
   };
 
   return (
-    <div className="text-white">
+    <div className="text-foreground">
       <Dialog open={open} onOpenChange={setOpen}>
         <div className="flex gap-2 items-center">
           {!publicKey ? (
@@ -83,10 +88,10 @@ export function WalletConnection() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex gap-2 bg-black text-white border-2 border-white font-slackey"
+                  className="flex gap-2 bg-background text-foreground border-2 border-foreground font-slackey md:w-[220px] w-[170px]"
                 >
-                  <div className="">
-                    <div className="truncate md:w-[150px] w-[100px]">
+                  <div className="md:w-[150px] w-[100px]">
+                    <div className="truncate md:max-w-[150px] max-w-[100px]">
                       {publicKey.toBase58()}
                     </div>
                   </div>
@@ -97,29 +102,25 @@ export function WalletConnection() {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="md:w-[150px] w-[100px]">
+              <DropdownMenuContent className="md:w-[220px] w-[170px]">
                 <DropdownMenuItem onClick={handleDisconnect}>
                   Disconnect
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-
-          <DialogContent
-            className="max-w-[450px] bg-black "
-            style={{
-              borderRadius: "30px",
-            }}
-          >
-            <div className="flex w-full justify-center items-center ">
-              <div className="flex flex-col justify-start items-center space-y-5 w-[300px] md:w-[400px] overflow-y-auto ">
+          <DialogContent className="max-w-[450px] bg-background">
+            <DialogHeader className="bg-background text-foreground font-slackey">
+              Select Wallet
+            </DialogHeader>
+            <div className="flex w-full">
+              <div className="flex flex-col justify-start space-y-5 w-[300px] md:w-[400px] overflow-y-auto ">
                 {wallets.map((wallet) => (
                   <Button
                     key={wallet.adapter.name}
-                    //onClick={() => select(wallet.adapter.name)}
                     onClick={() => handleWalletSelect(wallet.adapter.name)}
                     variant={"ghost"}
-                    className=" h-[40px] hover:bg-transparent hover:text-white text-white font-slackey flex w-full justify-center items-center "
+                    className=" h-[40px] hover:bg-transparent hover:text-foreground text-foreground font-slackey flex w-full"
                   >
                     <div className="flex">
                       <Image
@@ -130,7 +131,7 @@ export function WalletConnection() {
                         className="mr-5 "
                       />
                     </div>
-                    <div className="font-slackey text-white wallet-name">
+                    <div className="font-slackey text-foreground wallet-name">
                       {wallet.adapter.name}
                     </div>
                   </Button>
