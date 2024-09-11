@@ -31,18 +31,88 @@ pub mod solana_hub {
             ctx.accounts.auction.nft_list = nft_list;
             msg!("{0} and {1}", current_timestamp, timestamp_to_close,);
         }
+        else{
+            //TODO: return error
+        }
         Ok(())
     }
 
-    pub fn bid(ctx: Context<Bid>, name: String, nft_id: u16) -> Result<()> {
-        //TODO: bid only while time < ctx.auction.timestamp_to_close
-        msg!(
-            "{0},{1},{2}",
-            ctx.accounts.auction.key(),
-            name.to_string(),
-            nft_id.to_string()
-        );
-        Ok(())
+    //This method tries to pay back the prev bidder
+    //It has a "bug" that we dont want to consider in this mvp
+    //that is, if the prev bidder transfer out its rent
+    //the payment will fail and in some way
+    //it will not allow others to bid because the tx will fail
+    pub fn bid(ctx: Context<Bid>, _name: String, _nft_id: u16, bid_amount:u64) -> Result<()> {
+
+        let get_clock = Clock::get();
+        if let Ok(clock) = get_clock {
+            let current_timestamp = clock.unix_timestamp;
+            if current_timestamp>ctx.accounts.auction.timestamp_to_close{
+                //TODO change for an error, bids are not allowed anymore, auction is closed
+                return Ok(());
+            }
+
+            let prev_nft_auction_bidder = ctx.accounts.nft_auction.bidder;
+
+            if prev_nft_auction_bidder == ctx.accounts.bidder.key() {
+                return Ok(())//The auction is already of the bidder
+            }
+
+            let prev_nft_auction_bid_in_lamports = ctx.accounts.nft_auction.get_lamports();
+            
+            if bid_amount<=prev_nft_auction_bid_in_lamports{
+                //TODO change for an error, the bid can not be equals or lower
+                return Ok(())
+            }
+
+            //Is need to check the bidder, because if someone transfer lamports to the pda
+            //could break this
+            if  prev_nft_auction_bidder!=Pubkey::default() && prev_nft_auction_bid_in_lamports > 0{
+
+                if prev_nft_auction_bidder != ctx.accounts.previous_bidder.key() {
+                    //TODO return the previous bidder PASSED is invalid
+                    return Ok(());
+                }
+
+            }
+
+            let ix = anchor_lang::solana_program::system_instruction::transfer(
+                &ctx.accounts.bidder.key(),
+                &ctx.accounts.nft_auction.key(),
+                bid_amount,
+            );
+
+            anchor_lang::solana_program::program::invoke(
+                &ix,
+                &[
+                    ctx.accounts.bidder.to_account_info(),
+                    ctx.accounts.nft_auction.to_account_info(),
+                ],
+            )?;
+
+            //Had to execute this after the transfer
+            //because the prev transfer and this transfer with borrow 
+            //uses the same account
+            if  prev_nft_auction_bidder!=Pubkey::default() && prev_nft_auction_bid_in_lamports > 0{
+            **ctx
+                    .accounts
+                    .nft_auction
+                    .to_account_info()
+                    .try_borrow_mut_lamports()? -= prev_nft_auction_bid_in_lamports;
+                **ctx
+                    .accounts
+                    .previous_bidder
+                    .to_account_info()
+                    .try_borrow_mut_lamports()? += prev_nft_auction_bid_in_lamports;
+
+            }
+            ctx.accounts.nft_auction.bidder=ctx.accounts.bidder.key();
+        }
+        else{
+            //TODO: return error
+        }
+        
+        return Ok(())
     }
 
     // Currently, the creator receives their payment only when the NFT is claimed.
@@ -132,7 +202,7 @@ pub struct RegisterCollection<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(name:String, nft_id:u16)]
+#[instruction(name:String, nft_id:u16, bid_amount:u64)]
 pub struct Bid<'info> {
     #[account(
         seeds = ["auction".as_bytes(),name.as_bytes()],
@@ -150,6 +220,9 @@ pub struct Bid<'info> {
     pub nft_auction: Account<'info, NftAuction>,
     #[account(mut)]
     pub bidder: Signer<'info>,
+    /// CHECK: Can be warever
+    #[account(mut)]
+    pub previous_bidder: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -225,13 +298,11 @@ impl Auction {
 #[account]
 #[derive(Default)]
 pub struct NftAuction {
-    pub nft_id: u16,
     pub bidder: Pubkey,
-    pub price: u64, //in lamports
 }
 
 impl NftAuction {
-    pub const MAX_SIZE: usize = 8 + 2 + 32 + 8;
+    pub const MAX_SIZE: usize = 8 + 32;
 }
 
 #[error_code]
