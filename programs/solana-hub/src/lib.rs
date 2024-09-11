@@ -122,67 +122,82 @@ pub mod solana_hub {
     // claim process, ensuring that the creator receives their payment regardless of
     // whether the NFT is claimed.
     pub fn claim(ctx: Context<Claim>, name: String, nft_id: u16) -> Result<()> {
-        //TODO: claim only if timestamp_to_close
-
-        require!((nft_id as usize) < ctx.accounts.auction.nft_list.len(), ErrorCode::InvalidNftId);
         
-        let uri = ctx
-            .accounts
-            .auction
-            .nft_list
-            .get(nft_id as usize - 1)
-            .unwrap()
-            .uri.clone();
+        let get_clock = Clock::get();
+        if let Ok(clock) = get_clock {
 
-        let nft_data: DataV2 = DataV2 {
-            name: name.clone(),
-            symbol: String::from("PRB"), //TODO: Change this with metadata.name
-            uri,                         //TODO: Change this with metadata.symbol
-            seller_fee_basis_points: 3,
-            creators: None,   //TODO: [ctx.accounts.auction.creator.key()],
-            collection: None, //TODO: See how to put all the nfts under the same collection
-            uses: None,
-        };
+            let current_timestamp = clock.unix_timestamp;
+            if current_timestamp<=ctx.accounts.auction.timestamp_to_close{
+                //TODO change for an error, can not claim until the auction is closed
+                return Ok(());
+            }
 
-        let nft_signer_seeds = &[
-            "nft".as_bytes(),
-            name.as_bytes(),
-            "*".as_bytes(),
-            &nft_id.to_le_bytes(),
-            &[ctx.bumps.nft],
-        ];
-        let nft_signer = [&nft_signer_seeds[..]];
-        let metadata_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_metadata_program.to_account_info(),
-            CreateMetadataAccountsV3 {
-                payer: ctx.accounts.claimer.to_account_info(),
-                update_authority: ctx.accounts.nft.to_account_info(),
-                mint: ctx.accounts.nft.to_account_info(),
-                metadata: ctx.accounts.metadata.to_account_info(),
-                mint_authority: ctx.accounts.nft.to_account_info(),
-                system_program: ctx.accounts.system_program.to_account_info(),
-                rent: ctx.accounts.rent.to_account_info(),
-            },
-            &nft_signer,
-        );
+            require!((nft_id as usize) < ctx.accounts.auction.nft_list.len(), ErrorCode::InvalidNftId);
+        
+            let metadata = ctx.accounts.auction.nft_list.get(nft_id as usize-1);
 
-        create_metadata_accounts_v3(metadata_ctx, nft_data, false, true, None)?;
-
-        mint_to(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                MintTo {
-                    authority: ctx.accounts.nft.to_account_info(),
-                    to: ctx.accounts.receiver_account.to_account_info(),
+            let nft_name =  metadata.unwrap().name.clone();
+            let symbol =  metadata.unwrap().symbol.clone();
+            let uri = metadata.unwrap().uri.clone();
+    
+            let nft_data: DataV2 = DataV2 {
+                name: nft_name,
+                symbol, 
+                uri,                        
+                seller_fee_basis_points: 3,
+                creators: None,   //TODO: [ctx.accounts.auction.creator.key()],
+                collection: None, //TODO: See how to put all the nfts under the same collection
+                uses: None,
+            };
+    
+            let nft_signer_seeds = &[
+                "nft".as_bytes(),
+                name.as_bytes(),
+                "*".as_bytes(),
+                &nft_id.to_le_bytes(),
+                &[ctx.bumps.nft],
+            ];
+            let nft_signer = [&nft_signer_seeds[..]];
+            let metadata_ctx = CpiContext::new_with_signer(
+                ctx.accounts.token_metadata_program.to_account_info(),
+                CreateMetadataAccountsV3 {
+                    payer: ctx.accounts.claimer.to_account_info(),
+                    update_authority: ctx.accounts.nft.to_account_info(),
                     mint: ctx.accounts.nft.to_account_info(),
+                    metadata: ctx.accounts.metadata.to_account_info(),
+                    mint_authority: ctx.accounts.nft.to_account_info(),
+                    system_program: ctx.accounts.system_program.to_account_info(),
+                    rent: ctx.accounts.rent.to_account_info(),
                 },
                 &nft_signer,
-            ),
-            1,
-        )?;
+            );
+    
+            create_metadata_accounts_v3(metadata_ctx, nft_data, false, true, None)?;
+    
+            mint_to(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    MintTo {
+                        authority: ctx.accounts.nft.to_account_info(),
+                        to: ctx.accounts.receiver_account.to_account_info(),
+                        mint: ctx.accounts.nft.to_account_info(),
+                    },
+                    &nft_signer,
+                ),
+                1,
+            )?;
+            ctx.accounts.nft_auction.bidder=Pubkey::default();
+        }
+        else{
+              //TODO: return error
+        }
+        
 
         Ok(())
     }
+
+    //TODO: The creator who register the collection needs a method
+    //to claim all the funds from the nft_auctions pdas
 }
 
 #[derive(Accounts)]
@@ -237,19 +252,15 @@ pub struct Claim<'info> {
         bump
     )]
     pub auction: Account<'info, Auction>,
-    // #[account(
-    //     //TODO: Remove init_if_needed,payer,space (THE ACCOUNT SHOULD BE ALREADY INITIALIZED)
-    //     init_if_needed,
-    //     seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
-    //     bump,
-    //     payer=claimer,
-    //     space = NftAuction::MAX_SIZE,
-    //     //TODO: Uncomment this
-    //     //constraint = nft_auction.bidder.key() == claimer.key()
-    // )]
-    // pub nft_auction: Account<'info, NftAuction>,
     #[account(
-        init_if_needed,
+        mut,
+        seeds = ["nft_auction".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
+        bump,
+        constraint = nft_auction.bidder.key() == claimer.key()
+    )]
+    pub nft_auction: Account<'info, NftAuction>,
+    #[account(
+        init,
         constraint = !name.contains("*"),//To avoid collisions  name: name, nft_id: 11 and name: name1 nft_id:1
         seeds = ["nft".as_bytes(),name.as_bytes(),"*".as_bytes(),&nft_id.to_le_bytes()],
         bump,
