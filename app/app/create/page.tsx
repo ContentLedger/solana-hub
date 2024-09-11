@@ -12,6 +12,7 @@ import {
   CreateCollectionResults,
 } from "@/components/create/create-collection-dialog";
 import { AlertDialog, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { CreateCollectionDetails } from "@/components/create/create-collection-details";
 
 export default function Create() {
   const { drafts, activeDraft } = useAppState((state) => state.collections);
@@ -27,7 +28,7 @@ export default function Create() {
   const collection = useMemo(() => {
     if (activeDraft && drafts[activeDraft]) return drafts[activeDraft];
     create("New Collection");
-    return { id: "", items: [] };
+    return { name: "", id: "", items: [] };
   }, [activeDraft, create, drafts]);
 
   const createEnabled = useMemo(
@@ -52,8 +53,6 @@ export default function Create() {
   const handleCompleted = useCallback(
     (id: string, results: CreateCollectionResults) => {
       console.log("Collection created", id, results);
-      // TODO: Move the onCompleted logic that calls the solana program
-      //       to create-collection-dialog.tsx in the handlePublish callback
       publish(id, results);
       setSubmit(false);
     },
@@ -61,39 +60,44 @@ export default function Create() {
   );
 
   return (
-    <div className="flex justify-stretch">
-      <main className="flex-1 p-8">
-        <h1 className="text-2xl font-bold">New Collection</h1>
-        <div className="flex flex-col gap-4 mt-8">
-          {collection.items.map((data, index) => (
-            <CharacterCard
-              key={index}
-              {...data}
-              editable={index === collection.items.length - 1}
-              onChange={handleChange}
-              onAdd={handleAdd}
-            />
-          ))}
-        </div>
-        <div className="flex justify-end mt-8">
-          <AlertDialog onOpenChange={(open) => setSubmit(open)} open={submit}>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="default"
-                className="text-lg animated-background hover:bg-gradient-to-r hover:from-yellow-500 hover:via-orange-500 hover:to-red-500"
-                disabled={!createEnabled}
-              >
-                Create Collection
-              </Button>
-            </AlertDialogTrigger>
-            <CreateCollectionDialog
-              collection={collection}
-              submit={submit}
-              onCompleted={handleCompleted}
-            />
-          </AlertDialog>
-        </div>
-      </main>
+    <div className="flex flex-col p-8">
+      <h1 className="text-2xl font-bold">New Collection</h1>
+      <div className="flex">
+        <main className="flex-1">
+          <div className="flex flex-col gap-4 mt-8">
+            {collection.items.map((data, index) => (
+              <CharacterCard
+                key={index}
+                {...data}
+                editable={index === collection.items.length - 1}
+                onChange={handleChange}
+                onAdd={handleAdd}
+              />
+            ))}
+          </div>
+          <div className="flex justify-end mt-8">
+            <AlertDialog onOpenChange={(open) => setSubmit(open)} open={submit}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="default"
+                  className="text-lg animated-background hover:bg-gradient-to-r hover:from-yellow-500 hover:via-orange-500 hover:to-red-500"
+                  disabled={!createEnabled}
+                >
+                  Create Collection
+                </Button>
+              </AlertDialogTrigger>
+              <CreateCollectionDialog
+                collection={collection}
+                submit={submit}
+                onCompleted={handleCompleted}
+              />
+            </AlertDialog>
+          </div>
+        </main>
+        <aside className="p-8 flex-2">
+          <CreateCollectionDetails name={collection.name} />
+        </aside>
+      </div>
     </div>
   );
 }

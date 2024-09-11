@@ -16,7 +16,10 @@ export default function Home() {
             .filter((c) => c !== undefined)
             .map((collection) => (
               <Link key={collection.id} href={`/collection/${collection.id}`}>
-                <CollectionImageCard item={collection.items[0]} />
+                <CollectionImageCard
+                  item={collection.items[0]}
+                  count={collection.items.length}
+                />
               </Link>
             ))}
         </div>
