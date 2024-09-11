@@ -25,7 +25,7 @@ export default function Create() {
   }, [create, destroy, activeDraft]);
 
   const collection = useMemo(() => {
-    if (activeDraft) return drafts[activeDraft];
+    if (activeDraft && drafts[activeDraft]) return drafts[activeDraft];
     create("New Collection");
     return { id: "", items: [] };
   }, [activeDraft, create, drafts]);
@@ -62,7 +62,7 @@ export default function Create() {
 
   return (
     <div className="flex justify-stretch">
-      <div className="flex-1 p-8">
+      <main className="flex-1 p-8">
         <h1 className="text-2xl font-bold">New Collection</h1>
         <div className="flex flex-col gap-4 mt-4">
           {collection.items.map((data, index) => (
@@ -93,7 +93,7 @@ export default function Create() {
             />
           </AlertDialog>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

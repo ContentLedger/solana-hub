@@ -17,6 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WalletName } from "@solana/wallet-adapter-base";
+import { AvatarSNS } from "./avatar-sns";
+import { usePrimaryDomain } from "@bonfida/sns-react";
 
 //handle wallet balance fixed to 2 decimal numbers without rounding
 export function toFixed(num: number, fixed: number): string {
@@ -27,6 +29,7 @@ export function toFixed(num: number, fixed: number): string {
 export function WalletConnection() {
   const { connection } = useConnection();
   const { select, wallets, publicKey, disconnect, connecting } = useWallet();
+  const { domain } = usePrimaryDomain(connection, publicKey);
 
   const [open, setOpen] = useState<boolean>(false);
   const [balance, setBalance] = useState<number | null>(null);
@@ -88,11 +91,12 @@ export function WalletConnection() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex gap-2 bg-background text-foreground border-2 border-foreground font-slackey md:w-[220px] w-[170px]"
+                  className="flex gap-2 bg-background text-foreground border-2 border-foreground font-slackey md:w-[260px] w-[210px]"
                 >
+                  <AvatarSNS publicKey={publicKey} />
                   <div className="md:w-[150px] w-[100px]">
                     <div className="truncate md:max-w-[150px] max-w-[100px]">
-                      {publicKey.toBase58()}
+                      {domain || publicKey.toBase58()}
                     </div>
                   </div>
                   {balance ? (
@@ -102,7 +106,7 @@ export function WalletConnection() {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="md:w-[220px] w-[170px]">
+              <DropdownMenuContent className="md:w-[260px] w-[210px]">
                 <DropdownMenuItem onClick={handleDisconnect}>
                   Disconnect
                 </DropdownMenuItem>

@@ -1,6 +1,9 @@
+"use client";
+
 import { create } from "zustand";
 import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
 import { get, set, del } from "idb-keyval"; // can use anything: IndexedDB, Ionic Storage, etc.
+import { useEffect } from "react";
 
 type Collection = {
   id: string;
@@ -20,10 +23,10 @@ type Collection = {
 type AppState = {
   collections: {
     published: {
-      [id: string]: Collection;
+      [id: string]: Collection | undefined;
     };
     drafts: {
-      [id: string]: Collection;
+      [id: string]: Collection | undefined;
     };
     activeDraft: string | null;
   };
@@ -35,6 +38,21 @@ type AppState = {
       publish: (id: string, meta: Collection["meta"]) => void;
     };
   };
+};
+
+const storage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    if (typeof indexedDB === "undefined") throw Error("indexedDB unavailable");
+    return (await get(name)) || null;
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    if (typeof indexedDB === "undefined") throw Error("indexedDB unavailable");
+    await set(name, value);
+  },
+  removeItem: async (name: string): Promise<void> => {
+    if (typeof indexedDB === "undefined") throw Error("indexedDB unavailable");
+    await del(name);
+  },
 };
 
 export const useAppState = create(
@@ -77,10 +95,18 @@ export const useAppState = create(
                   ...state.collections,
                   drafts: {
                     ...state.collections.drafts,
-                    [id]: {
-                      ...state.collections.drafts[id],
-                      items: [...state.collections.drafts[id].items, item],
-                    },
+                    [id]: state.collections.drafts[id]
+                      ? {
+                          ...state.collections.drafts[id],
+                          items: [...state.collections.drafts[id].items, item],
+                        }
+                      : {
+                          id,
+                          name: "",
+                          createdAt: new Date().toISOString(),
+                          items: [item],
+                          meta: [],
+                        },
                   },
                 },
               }));
@@ -91,14 +117,23 @@ export const useAppState = create(
                   ...state.collections,
                   drafts: {
                     ...state.collections.drafts,
-                    [id]: {
-                      ...state.collections.drafts[id],
-                      items: [
-                        ...state.collections.drafts[id].items.map((data, i) =>
-                          i === idx ? { ...data, ...item } : data
-                        ),
-                      ],
-                    },
+                    [id]: state.collections.drafts[id]
+                      ? {
+                          ...state.collections.drafts[id],
+                          items: [
+                            ...state.collections.drafts[id].items.map(
+                              (data, i) =>
+                                i === idx ? { ...data, ...item } : data
+                            ),
+                          ],
+                        }
+                      : {
+                          id,
+                          name: "",
+                          createdAt: new Date().toISOString(),
+                          items: [item],
+                          meta: [],
+                        },
                   },
                 },
               }));
@@ -111,12 +146,14 @@ export const useAppState = create(
               ...state,
               collections: {
                 ...state.collections,
+                /*
                 published: Object.keys(state.collections.published)
                   .filter((d) => d !== id)
                   .reduce((acc, d) => {
                     acc[d] = state.collections.published[d];
                     return acc;
                   }, {} as AppState["collections"]["published"]),
+                  */
                 drafts: Object.keys(state.collections.drafts)
                   .filter((d) => d !== id)
                   .reduce((acc, d) => {
@@ -134,8 +171,9 @@ export const useAppState = create(
           publish: (id, meta) => {
             set((state) => {
               const draft = state.collections.drafts[id];
+              if (!draft) return state;
               draft.items = draft.items.slice(0, meta.length);
-              draft.meta = { ...meta };
+              draft.meta = [...meta];
               return {
                 ...state,
                 collections: {
@@ -159,25 +197,25 @@ export const useAppState = create(
     }),
     {
       name: "app-state",
-      storage: createJSONStorage(() => storage),
+      storage: createJSONStorage(() => {
+        if (typeof indexedDB === "undefined")
+          throw new Error("indexedDB unavailable");
+        return storage;
+      }),
       partialize: (state) => ({
         collections: state.collections,
       }),
+      skipHydration: true,
     }
   )
 );
 
-const storage: StateStorage = {
-  getItem: async (name: string): Promise<string | null> => {
-    if (typeof indexedDB === "undefined") return null;
-    return (await get(name)) || null;
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    if (typeof indexedDB === "undefined") return;
-    await set(name, value);
-  },
-  removeItem: async (name: string): Promise<void> => {
-    if (typeof indexedDB === "undefined") return;
-    await del(name);
-  },
-};
+export default function AppStateConsumer({
+  children,
+}: React.PropsWithChildren<unknown>) {
+  useEffect(() => {
+    useAppState.persist.rehydrate();
+  }, []);
+
+  return <>{children}</>;
+}
