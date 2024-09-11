@@ -19,7 +19,7 @@ const account2WithLamports = anchor.web3.Keypair.fromSecretKey(
 
 const random = new anchor.web3.Keypair();
 
-const COLLECTION_NAME = "La Piedra Filosofal 35";
+const COLLECTION_NAME = "La Piedra Filosofal 38";
 const NFT_LIST = [
   {
     name: "Harry Potter",

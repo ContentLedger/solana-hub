@@ -37,6 +37,11 @@ pub mod solana_hub {
         Ok(())
     }
 
+    //This method tries to pay back the prev bidder
+    //It has a "bug" that we dont want to consider in this mvp
+    //that is, if the prev bidder transfer out its rent
+    //the payment will fail and in some way
+    //it will not allow others to bid because the tx will fail
     pub fn bid(ctx: Context<Bid>, _name: String, _nft_id: u16, bid_amount:u64) -> Result<()> {
 
         let get_clock = Clock::get();
