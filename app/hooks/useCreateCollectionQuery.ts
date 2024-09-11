@@ -16,28 +16,31 @@ export function useCreateCollectionQuery(
   collection: Array<Collection>
 ) {
   const queries = useQueries({
-    queries: collection.map((collection, idx) => ({
-      queryKey: [key, idx],
-      staleTime: Infinity,
-      queryFn: async () => {
-        const blob = await (await fetch(collection.image)).blob();
-        const formData = new FormData();
-        formData.append("file", blob);
-        formData.append(
-          "metadata",
-          JSON.stringify({
-            name: collection.name,
-            description: collection.description,
-          })
-        );
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await response.json();
-        return data as CollectionResults;
-      },
-    })),
+    queries: collection
+      .filter((c) => c.name && c.description && c.image)
+      .map((collection, idx) => ({
+        queryKey: [key, idx],
+        staleTime: Infinity,
+        queryFn: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 200 * idx));
+          const blob = await (await fetch(collection.image)).blob();
+          const formData = new FormData();
+          formData.append("file", blob);
+          formData.append(
+            "metadata",
+            JSON.stringify({
+              name: collection.name,
+              description: collection.description,
+            })
+          );
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+          return data as CollectionResults;
+        },
+      })),
   });
 
   const isLoading = queries.some((query) => query.isLoading);
