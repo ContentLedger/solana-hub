@@ -47,34 +47,28 @@ pub mod solana_hub {
                 return Ok(());
             }
 
-            if ctx.accounts.nft_auction.bidder == ctx.accounts.bidder.key() {
+            let prev_nft_auction_bidder = ctx.accounts.nft_auction.bidder;
+
+            if prev_nft_auction_bidder == ctx.accounts.bidder.key() {
                 return Ok(())//The auction is already of the bidder
             }
 
-            let nft_auction_bid_in_lamports = ctx.accounts.nft_auction.get_lamports();
-    
-            if nft_auction_bid_in_lamports>=bid_amount{
+            let prev_nft_auction_bid_in_lamports = ctx.accounts.nft_auction.get_lamports();
+            
+            if bid_amount<=prev_nft_auction_bid_in_lamports{
                 //TODO change for an error, the bid can not be equals or lower
                 return Ok(())
             }
 
-            if nft_auction_bid_in_lamports > 0 {
+            //Is need to check the bidder, because if someone transfer lamports to the pda
+            //could break this
+            if  prev_nft_auction_bidder!=Pubkey::default() && prev_nft_auction_bid_in_lamports > 0{
 
-                if ctx.accounts.previous_bidder.key() != ctx.accounts.nft_auction.bidder.key() {
-                    //TODO return the previous bidder is invalid
+                if prev_nft_auction_bidder != ctx.accounts.previous_bidder.key() {
+                    //TODO return the previous bidder PASSED is invalid
                     return Ok(());
                 }
 
-                **ctx
-                    .accounts
-                    .nft_auction
-                    .to_account_info()
-                    .try_borrow_mut_lamports()? -= nft_auction_bid_in_lamports;
-                **ctx
-                    .accounts
-                    .previous_bidder
-                    .to_account_info()
-                    .try_borrow_mut_lamports()? += nft_auction_bid_in_lamports;
             }
 
             let ix = anchor_lang::solana_program::system_instruction::transfer(
@@ -91,6 +85,22 @@ pub mod solana_hub {
                 ],
             )?;
 
+            //Had to execute this after the transfer
+            //because the prev transfer and this transfer with borrow 
+            //uses the same account
+            if  prev_nft_auction_bidder!=Pubkey::default() && prev_nft_auction_bid_in_lamports > 0{
+            **ctx
+                    .accounts
+                    .nft_auction
+                    .to_account_info()
+                    .try_borrow_mut_lamports()? -= prev_nft_auction_bid_in_lamports;
+                **ctx
+                    .accounts
+                    .previous_bidder
+                    .to_account_info()
+                    .try_borrow_mut_lamports()? += prev_nft_auction_bid_in_lamports;
+
+            }
             ctx.accounts.nft_auction.bidder=ctx.accounts.bidder.key();
         }
         else{
@@ -205,8 +215,9 @@ pub struct Bid<'info> {
     pub nft_auction: Account<'info, NftAuction>,
     #[account(mut)]
     pub bidder: Signer<'info>,
+    /// CHECK: Can be warever
     #[account(mut)]
-    pub previous_bidder: SystemAccount<'info>,
+    pub previous_bidder: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 

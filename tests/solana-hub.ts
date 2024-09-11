@@ -10,14 +10,16 @@ const accountWithLamports = anchor.web3.Keypair.fromSecretKey(
   )
 );
 
-//4jqQQ61Pkxh7f2Gma4Kqf66iNzxcMCxkx7hPK4tepqF8
+//Address:2ijVMniqgVgwyRebdPduJaVSAyqeR5Q9ftLJyAYYB7Qc
 const account2WithLamports = anchor.web3.Keypair.fromSecretKey(
   bs58.decode(
-    "3WawKsMtXLTDoreSgo7uNjVvX2NfrCA66pHN6tPuxfzUiLEzHhX6aPWLHCZcatvzPhkXJX5HVyKYJp4CiyD2HJFU"
+    "8YGuLJGSHw4pTTeL8NERw11xDViWBUmqygBbjFGw19DdQyePcZSME4wHtxBAiKcHRzfdweR92a14cB279HKBbg4"
   )
 );
 
-const COLLECTION_NAME = "La Piedra Filosofal 15";
+const random = new anchor.web3.Keypair();
+
+const COLLECTION_NAME = "La Piedra Filosofal 35";
 const NFT_LIST = [
   {
     name: "Harry Potter",
@@ -107,53 +109,68 @@ const predictAuctionNft = (
   return auctionNft;
 };
 
-//PRECONDITION; ADD LAMPORTS TO H9KwD9eQakjKuqanLpqxfEgBHPLniGsZTjpKyA9mXKgz AND 4jqQQ61Pkxh7f2Gma4Kqf66iNzxcMCxkx7hPK4tepqF8
+//PRECONDITION; ADD LAMPORTS TO H9KwD9eQakjKuqanLpqxfEgBHPLniGsZTjpKyA9mXKgz AND 2ijVMniqgVgwyRebdPduJaVSAyqeR5Q9ftLJyAYYB7Qc
 describe("solana-hub", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.SolanaHub as Program<SolanaHub>;
 
-  // it("Register collection!", async () => {
-  //   // Add your test here.
-  //   const txInstruction = await program.methods
-  //     .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
-  //     .accounts({ creator: accountWithLamports.publicKey })
-  //     .instruction();
-  //   const transaction = new anchor.web3.Transaction().add(txInstruction);
-  //   transaction.recentBlockhash = (
-  //     await program.provider.connection.getLatestBlockhash("finalized")
-  //   ).blockhash;
-  //   transaction.sign(accountWithLamports);
-  //   const txHash = await program.provider.connection.sendRawTransaction(
-  //     transaction.serialize(),
-  //     { preflightCommitment: "confirmed" }
-  //   );
-  //   const confirmation = await program.provider.connection.confirmTransaction(
-  //     txHash,
-  //     "confirmed"
-  //   );
-  //   if (!confirmation.value.err) {
-  //     console.log("Your transaction signature", txHash);
-  //     const auctionAccount = predictAuction(program, COLLECTION_NAME);
-  //     const accountInfo = await program.account.auction.fetch(auctionAccount);
-  //     console.log(accountInfo.timestampToClose.toNumber());
-  //     console.log(accountInfo.nftList);
-  //   }
-  // });
+  it("Register collection!", async () => {
+    // Add your test here.
+    const txInstruction = await program.methods
+      .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
+      .accounts({ creator: accountWithLamports.publicKey })
+      .instruction();
+    const transaction = new anchor.web3.Transaction().add(txInstruction);
+    transaction.recentBlockhash = (
+      await program.provider.connection.getLatestBlockhash("finalized")
+    ).blockhash;
+    transaction.sign(accountWithLamports);
+    const txHash = await program.provider.connection.sendRawTransaction(
+      transaction.serialize(),
+      { preflightCommitment: "confirmed" }
+    );
+    const confirmation = await program.provider.connection.confirmTransaction(
+      txHash,
+      "confirmed"
+    );
+    if (!confirmation.value.err) {
+      console.log("Your transaction signature", txHash);
+      const auctionAccount = predictAuction(program, COLLECTION_NAME);
+      const accountInfo = await program.account.auction.fetch(auctionAccount);
+      console.log(accountInfo.timestampToClose.toNumber());
+      console.log(accountInfo.nftList);
+    }
+  });
 
   it("Bid!", async () => {
     // Add your test here.
-    const nftId = 1;
+    const nftId = 3;
     const auctionNft = predictAuctionNft(program, COLLECTION_NAME, nftId);
 
     const bid = async (amountToBid: anchor.BN, bidder: anchor.web3.Keypair) => {
-      const accountInfo = await program.account.nftAuction.fetch(auctionNft);
+      try {
+        const accountInfo = await program.account.nftAuction.fetch(auctionNft);
+        console.log(accountInfo);
+        console.log(
+          "balance before",
+          await program.provider.connection.getBalance(auctionNft)
+        );
+      } catch (e) {
+        console.log(e);
+      }
+      let prevBidder = random.publicKey; //new anchor.web3.PublicKey(anchor.web3.VOTE_PROGRAM_ID);
+      try {
+        prevBidder = (await program.account.nftAuction.fetch(auctionNft))
+          .bidder;
+      } catch (e) {}
+
       const txInstruction = await program.methods
         .bid(COLLECTION_NAME, nftId, amountToBid)
         .accounts({
           bidder: bidder.publicKey,
-          previousBidder: accountInfo.bidder,
+          previousBidder: prevBidder,
         })
         .instruction();
       const transaction = new anchor.web3.Transaction().add(txInstruction);
@@ -176,14 +193,14 @@ describe("solana-hub", () => {
         const accountInfo = await program.account.nftAuction.fetch(auctionNft);
         console.log(accountInfo);
         console.log(
-          "balance",
+          "balance after",
           await program.provider.connection.getBalance(auctionNft)
         );
       }
     };
 
-    //await bid(new anchor.BN(0.01 * 10 ** 9), accountWithLamports);
-    await bid(new anchor.BN(0.02 * 10 ** 9), account2WithLamports);
+    await bid(new anchor.BN(0.06 * 10 ** 9), accountWithLamports);
+    await bid(new anchor.BN(0.07 * 10 ** 9), account2WithLamports);
   });
 
   // it("Claim nft!", async () => {
