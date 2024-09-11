@@ -9,7 +9,7 @@ export type CollectionImageCardProps = {
 
 export function CollectionImageCard({ item }: CollectionImageCardProps) {
   return (
-    <div className="flex flex-col items-center justify-end w-[300px] h-[300px] bg-background border border-foreground rounded-lg shadow-md overflow-hidden">
+    <div className="flex flex-col items-center justify-end w-[300px] h-[300px] bg-background border rounded-lg shadow-md overflow-hidden">
       <AspectRatio ratio={1 / 1} className="">
         <ImageWithFallback
           src={item.image}

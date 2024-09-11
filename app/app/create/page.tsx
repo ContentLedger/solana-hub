@@ -64,7 +64,7 @@ export default function Create() {
     <div className="flex justify-stretch">
       <main className="flex-1 p-8">
         <h1 className="text-2xl font-bold">New Collection</h1>
-        <div className="flex flex-col gap-4 mt-4">
+        <div className="flex flex-col gap-4 mt-8">
           {collection.items.map((data, index) => (
             <CharacterCard
               key={index}
