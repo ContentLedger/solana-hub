@@ -11,6 +11,8 @@ import { Label } from "../ui/label";
 import { useCreateCollectionQuery } from "@/hooks/useCreateCollectionQuery";
 import { Progress } from "../ui/progress";
 import { useCallback } from "react";
+import { useAnchorProvider } from "../anchor-wallet-provider";
+import { registerCollection } from "@/lib/solanaHubProgram";
 
 export type CreateCollectionDialogProps = {
   submit?: boolean;
@@ -34,6 +36,7 @@ export function CreateCollectionContent({
   collection,
   onCompleted,
 }: Pick<CreateCollectionDialogProps, "collection" | "onCompleted">) {
+  const provider = useAnchorProvider();
   const { progress, isSuccess, isError, queries } = useCreateCollectionQuery(
     collection.id,
     collection.items
@@ -42,8 +45,24 @@ export function CreateCollectionContent({
   const handlePublish = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      // TODO: Move the onCompleted logic that calls the program to this function
-      //       call onCompleted once we know the collection data is on chain...
+
+      const collectionName = `collection-${collection.id}`;
+      const secondsToClose = 360;
+      const nftList = queries.map((query, index) => ({
+        uri: query.data?.metadataUrl ?? "",
+        name: `${collectionName} #${index}`,
+        symbol: "solana_hub",
+      }));
+
+      registerCollection(
+        collectionName,
+        secondsToClose,
+        nftList,
+        provider
+      ).then((value: string) => {
+        console.log("Transaction sent", value);
+      });
+
       onCompleted?.(
         collection.id,
         queries.map((query) => query?.data ?? { metadataUrl: "", imageUrl: "" })

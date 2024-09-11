@@ -12,8 +12,6 @@ import {
   CreateCollectionResults,
 } from "@/components/create/create-collection-dialog";
 import { AlertDialog, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { registerCollection } from "@/lib/solanaHubProgram";
-import { useAnchorProvider } from "@/components/anchor-wallet-provider";
 
 export default function Create() {
   const { drafts, activeDraft } = useAppState((state) => state.collections);
@@ -21,7 +19,6 @@ export default function Create() {
     (state) => state.actions.collection
   );
   const [submit, setSubmit] = useState(false);
-  const provider = useAnchorProvider();
 
   useEffect(() => {
     return () => destroy(activeDraft);
@@ -59,26 +56,8 @@ export default function Create() {
       //       to create-collection-dialog.tsx in the handlePublish callback
       publish(id, results);
       setSubmit(false);
-      clear();
-
-      const collectionName = `collection-${id}`;
-      const secondsToClose = 360;
-      const nftList = results.map((result, index) => ({
-        uri: result.metadataUrl,
-        name: `${collectionName} #${index}`,
-        symbol: "solana_hub",
-      }));
-
-      registerCollection(
-        collectionName,
-        secondsToClose,
-        nftList,
-        provider
-      ).then((value: string) => {
-        console.log("Transaction sent", value);
-      });
     },
-    [clear, publish, provider]
+    [publish]
   );
 
   return (
