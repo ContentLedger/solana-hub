@@ -1,50 +1,63 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CharacterCard,
   CharacterCardData,
 } from "@/components/create/character-card";
 import { Button } from "@/components/ui/button";
 import { useAppState } from "@/hooks/useAppState";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import {
   CreateCollectionDialog,
   CreateCollectionResults,
 } from "@/components/create/create-collection-dialog";
+import { AlertDialog, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { registerCollection } from "@/lib/solanaHubProgram";
 import { useAnchorProvider } from "@/components/anchor-wallet-provider";
 
 export default function Create() {
-  const collection = useAppState((state) => state.collection);
-  const { add, last, clear } = useAppState((state) => state.actions);
+  const { drafts, activeDraft } = useAppState((state) => state.collections);
+  const { create, update, destroy, publish } = useAppState(
+    (state) => state.actions.collection
+  );
   const [submit, setSubmit] = useState(false);
   const provider = useAnchorProvider();
 
-  // TODO: refactor to support multiple collections
-  // TODO: reload the page for a new collection until I fix this in the data store
-  const namedCollection = useMemo(
-    () => ({
-      id: Math.random().toString(36).substring(7),
-      items: collection,
-    }),
+  useEffect(() => {
+    return () => destroy(activeDraft);
+  }, [create, destroy, activeDraft]);
+
+  const collection = useMemo(() => {
+    if (activeDraft && drafts[activeDraft]) return drafts[activeDraft];
+    create("New Collection");
+    return { id: "", items: [] };
+  }, [activeDraft, create, drafts]);
+
+  const createEnabled = useMemo(
+    () =>
+      collection.items.length > 1 ||
+      (collection.items.length &&
+        Object.values(collection.items[0]).every((i) => i)),
     [collection]
   );
 
   const handleAdd = useCallback(() => {
-    add({ name: "", description: "", image: "" });
-  }, [add]);
+    update(collection.id, { name: "", description: "", image: "" });
+  }, [update, collection]);
 
   const handleChange = useCallback(
     (data: CharacterCardData) => {
-      last(data);
+      update(collection.id, data, collection.items.length - 1);
     },
-    [last]
+    [update, collection]
   );
 
   const handleCompleted = useCallback(
     (id: string, results: CreateCollectionResults) => {
       console.log("Collection created", id, results);
+      // TODO: Move the onCompleted logic that calls the solana program
+      //       to create-collection-dialog.tsx in the handlePublish callback
+      publish(id, results);
       setSubmit(false);
       clear();
 
@@ -65,39 +78,43 @@ export default function Create() {
         console.log("Transaction sent", value);
       });
     },
-    [clear, provider]
+    [clear, publish, provider]
   );
 
   return (
     <div className="flex justify-stretch">
-      <div className="flex-1 p-8">
+      <main className="flex-1 p-8">
         <h1 className="text-2xl font-bold">New Collection</h1>
         <div className="flex flex-col gap-4 mt-4">
-          {collection.map((data, index) => (
+          {collection.items.map((data, index) => (
             <CharacterCard
               key={index}
               {...data}
-              editable={index === collection.length - 1}
+              editable={index === collection.items.length - 1}
               onChange={handleChange}
               onAdd={handleAdd}
             />
           ))}
         </div>
-        <div className="flex justify-end mt-4">
-          <Dialog onOpenChange={(open) => setSubmit(open)}>
-            <DialogTrigger asChild>
-              <Button variant="default" className="text-lg">
+        <div className="flex justify-end mt-8">
+          <AlertDialog onOpenChange={(open) => setSubmit(open)} open={submit}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="default"
+                className="text-lg animated-background hover:bg-gradient-to-r hover:from-yellow-500 hover:via-orange-500 hover:to-red-500"
+                disabled={!createEnabled}
+              >
                 Create Collection
               </Button>
-            </DialogTrigger>
+            </AlertDialogTrigger>
             <CreateCollectionDialog
-              collection={namedCollection}
-              open={submit}
+              collection={collection}
+              submit={submit}
               onCompleted={handleCompleted}
             />
-          </Dialog>
+          </AlertDialog>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

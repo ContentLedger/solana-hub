@@ -16,6 +16,15 @@ export async function POST(request: NextRequest) {
     file
   );
 
+  if (process.env.FAKE_UPLOADS) {
+    console.warn("Skipping upload to Akord, simulating upload...");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return NextResponse.json({
+      metadataUrl: `https://fake.uploads/${metadataFileName}`,
+      imageUrl: `https://fake.uploads/${imageFileName}`,
+    });
+  }
+
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 

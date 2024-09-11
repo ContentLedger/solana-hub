@@ -1,16 +1,19 @@
 import {
-  DialogTitle,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-} from "../ui/dialog";
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+} from "../ui/alert-dialog";
 import { Label } from "../ui/label";
 import { useCreateCollectionQuery } from "@/hooks/useCreateCollectionQuery";
 import { Progress } from "../ui/progress";
-import { useEffect, useRef } from "react";
+import { useCallback } from "react";
 
 export type CreateCollectionDialogProps = {
-  open?: boolean;
+  submit?: boolean;
   onCompleted?: (key: string, results: CreateCollectionResults) => void;
   collection: {
     id: string;
@@ -31,27 +34,33 @@ export function CreateCollectionContent({
   collection,
   onCompleted,
 }: Pick<CreateCollectionDialogProps, "collection" | "onCompleted">) {
-  const completed = useRef(new Set<string>());
   const { progress, isSuccess, isError, queries } = useCreateCollectionQuery(
     collection.id,
     collection.items
   );
 
-  useEffect(() => {
-    if (isSuccess && !completed.current.has(collection.id)) {
-      const results = queries.map(
-        (query) => query?.data ?? { metadataUrl: "", imageUrl: "" }
+  const handlePublish = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      // TODO: Move the onCompleted logic that calls the program to this function
+      //       call onCompleted once we know the collection data is on chain...
+      onCompleted?.(
+        collection.id,
+        queries.map((query) => query?.data ?? { metadataUrl: "", imageUrl: "" })
       );
-      onCompleted?.(collection.id, results);
-      completed.current.add(collection.id);
-    }
-  }, [collection.id, isSuccess, onCompleted, queries]);
+    },
+    [collection.id, onCompleted, queries]
+  );
 
   return (
-    <DialogContent className="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle>Creating Collection</DialogTitle>
-      </DialogHeader>
+    <AlertDialogContent className="sm:max-w-md">
+      <AlertDialogHeader>
+        <AlertDialogTitle>Creating Collection</AlertDialogTitle>
+      </AlertDialogHeader>
+      <AlertDialogDescription>
+        {queries.length} items in collection
+        {isSuccess ? " - Ready to publish" : isError ? " - Failed" : ""}
+      </AlertDialogDescription>
       <div className="flex items-center space-x-2">
         <div className="grid flex-1 gap-2">
           <Label className="sr-only">Progress</Label>
@@ -61,21 +70,22 @@ export function CreateCollectionContent({
           />
         </div>
       </div>
-      <DialogFooter className="sm:justify-start">
-        {isError ? (
-          <p className="text-red-500">Failed to create collection</p>
-        ) : null}
-      </DialogFooter>
-    </DialogContent>
+      <AlertDialogFooter>
+        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogAction onClick={handlePublish} disabled={!isSuccess}>
+          Publish
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
   );
 }
 
 export function CreateCollectionDialog({
   collection,
-  open,
+  submit,
   onCompleted,
 }: CreateCollectionDialogProps) {
-  return open ? (
+  return submit ? (
     <CreateCollectionContent
       collection={collection}
       onCompleted={onCompleted}
