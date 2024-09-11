@@ -12,11 +12,14 @@ import {
   CreateCollectionDialog,
   CreateCollectionResults,
 } from "@/components/create/create-collection-dialog";
+import { registerCollection } from "@/lib/solanaHubProgram";
+import { useAnchorProvider } from "@/components/anchor-wallet-provider";
 
 export default function Create() {
   const collection = useAppState((state) => state.collection);
   const { add, last, clear } = useAppState((state) => state.actions);
   const [submit, setSubmit] = useState(false);
+  const provider = useAnchorProvider();
 
   // TODO: refactor to support multiple collections
   // TODO: reload the page for a new collection until I fix this in the data store
@@ -44,8 +47,25 @@ export default function Create() {
       console.log("Collection created", id, results);
       setSubmit(false);
       clear();
+
+      const collectionName = `collection-${id}`;
+      const secondsToClose = 360;
+      const nftList = results.map((result, index) => ({
+        uri: result.metadataUrl,
+        name: `${collectionName} #${index}`,
+        symbol: "solana_hub",
+      }));
+
+      registerCollection(
+        collectionName,
+        secondsToClose,
+        nftList,
+        provider
+      ).then((value: string) => {
+        console.log("Transaction sent", value);
+      });
     },
-    [clear]
+    [clear, provider]
   );
 
   return (
