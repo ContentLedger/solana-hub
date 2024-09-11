@@ -19,7 +19,7 @@ const account2WithLamports = anchor.web3.Keypair.fromSecretKey(
 
 const random = new anchor.web3.Keypair();
 
-const COLLECTION_NAME = "La Piedra Filosofal 38";
+const COLLECTION_NAME = "La Piedra Filosofal 39";
 const NFT_LIST = [
   {
     name: "Harry Potter",
@@ -109,17 +109,27 @@ const predictAuctionNft = (
   return auctionNft;
 };
 
-//PRECONDITION; ADD LAMPORTS TO H9KwD9eQakjKuqanLpqxfEgBHPLniGsZTjpKyA9mXKgz AND 2ijVMniqgVgwyRebdPduJaVSAyqeR5Q9ftLJyAYYB7Qc
+function wait(seconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+
+//PRECONDITION;
+//ADD LAMPORTS TO H9KwD9eQakjKuqanLpqxfEgBHPLniGsZTjpKyA9mXKgz AND 2ijVMniqgVgwyRebdPduJaVSAyqeR5Q9ftLJyAYYB7Qc
+//CHANGE COLLECTION_NAME
 describe("solana-hub", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.SolanaHub as Program<SolanaHub>;
 
+  const auctionTime = 0.2 * 60;
+
+  const nftToBid = 1;
+
   it("Register collection!", async () => {
     // Add your test here.
     const txInstruction = await program.methods
-      .registerCollection(COLLECTION_NAME, new anchor.BN(5 * 60), NFT_LIST)
+      .registerCollection(COLLECTION_NAME, new anchor.BN(auctionTime), NFT_LIST)
       .accounts({ creator: accountWithLamports.publicKey })
       .instruction();
     const transaction = new anchor.web3.Transaction().add(txInstruction);
@@ -146,8 +156,7 @@ describe("solana-hub", () => {
 
   it("Bid!", async () => {
     // Add your test here.
-    const nftId = 3;
-    const auctionNft = predictAuctionNft(program, COLLECTION_NAME, nftId);
+    const auctionNft = predictAuctionNft(program, COLLECTION_NAME, nftToBid);
 
     const bid = async (amountToBid: anchor.BN, bidder: anchor.web3.Keypair) => {
       try {
@@ -167,7 +176,7 @@ describe("solana-hub", () => {
       } catch (e) {}
 
       const txInstruction = await program.methods
-        .bid(COLLECTION_NAME, nftId, amountToBid)
+        .bid(COLLECTION_NAME, nftToBid, amountToBid)
         .accounts({
           bidder: bidder.publicKey,
           previousBidder: prevBidder,
@@ -203,33 +212,34 @@ describe("solana-hub", () => {
     await bid(new anchor.BN(0.07 * 10 ** 9), account2WithLamports);
   });
 
-  // it("Claim nft!", async () => {
-  //   // Add your test here.
-  //   const nftId = 1;
-  //   const txInstruction = await program.methods
-  //     .claim(COLLECTION_NAME, nftId)
-  //     .accounts({
-  //       metadata: predictMetadataAccount(program, COLLECTION_NAME, nftId),
-  //       claimer: accountWithLamports.publicKey,
-  //     })
-  //     .instruction();
-  //   const transaction = new anchor.web3.Transaction().add(txInstruction);
-  //   transaction.recentBlockhash = (
-  //     await program.provider.connection.getLatestBlockhash("finalized")
-  //   ).blockhash;
-  //   transaction.sign(accountWithLamports);
-  //   const txHash = await program.provider.connection.sendRawTransaction(
-  //     transaction.serialize(),
-  //     { preflightCommitment: "confirmed" }
-  //   );
-  //   const confirmation = await program.provider.connection.confirmTransaction(
-  //     txHash,
-  //     "confirmed"
-  //   );
-  //   if (!confirmation.value.err) {
-  //     console.log("Your transaction signature", txHash);
-  //     const nft = predictNft(program, COLLECTION_NAME, nftId);
-  //     console.log(nft.toBase58());
-  //   }
-  // });
+  it("Claim nft!", async () => {
+    // Add your test here.
+    await wait(auctionTime + 5);
+
+    const txInstruction = await program.methods
+      .claim(COLLECTION_NAME, nftToBid)
+      .accounts({
+        metadata: predictMetadataAccount(program, COLLECTION_NAME, nftToBid),
+        claimer: account2WithLamports.publicKey,
+      })
+      .instruction();
+    const transaction = new anchor.web3.Transaction().add(txInstruction);
+    transaction.recentBlockhash = (
+      await program.provider.connection.getLatestBlockhash("finalized")
+    ).blockhash;
+    transaction.sign(account2WithLamports);
+    const txHash = await program.provider.connection.sendRawTransaction(
+      transaction.serialize(),
+      { preflightCommitment: "confirmed" }
+    );
+    const confirmation = await program.provider.connection.confirmTransaction(
+      txHash,
+      "confirmed"
+    );
+    if (!confirmation.value.err) {
+      console.log("Your transaction signature", txHash);
+      const nft = predictNft(program, COLLECTION_NAME, nftToBid);
+      console.log(nft.toBase58());
+    }
+  });
 });
