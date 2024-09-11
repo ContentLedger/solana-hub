@@ -61,12 +61,13 @@ export function CreateCollectionContent({
         provider
       ).then((value: string) => {
         console.log("Transaction sent", value);
+        onCompleted?.(
+          collection.id,
+          queries.map(
+            (query) => query?.data ?? { metadataUrl: "", imageUrl: "" }
+          )
+        );
       });
-
-      onCompleted?.(
-        collection.id,
-        queries.map((query) => query?.data ?? { metadataUrl: "", imageUrl: "" })
-      );
     },
     [collection.id, onCompleted, queries]
   );
