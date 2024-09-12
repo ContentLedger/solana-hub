@@ -39,7 +39,8 @@ export function CreateCollectionContent({
   const provider = useAnchorProvider();
   const { progress, isSuccess, isError, queries } = useCreateCollectionQuery(
     collection.id,
-    collection.items
+    collection.items,
+    provider.publicKey?.toBase58() ?? ""
   );
 
   const handlePublish = useCallback(
@@ -47,7 +48,11 @@ export function CreateCollectionContent({
       e.preventDefault();
 
       const collectionName = `collection-${collection.id}`;
-      const secondsToClose = 360;
+      let secondsAmount = prompt(
+        "Please enter the amount of seconds to close the auction",
+        "360"
+      );
+      const secondsToClose = secondsAmount ? parseInt(secondsAmount, 10) : 360;
       const nftList = queries.map((query, index) => ({
         uri: query.data?.metadataUrl ?? "",
         name: `${collectionName} #${index}`,

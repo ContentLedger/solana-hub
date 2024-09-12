@@ -13,7 +13,8 @@ export type CollectionResults = {
 
 export function useCreateCollectionQuery(
   key: string,
-  collection: Array<Collection>
+  collection: Array<Collection>,
+  creatorPubKey: string
 ) {
   const queries = useQueries({
     queries: collection
@@ -31,6 +32,7 @@ export function useCreateCollectionQuery(
             JSON.stringify({
               name: collection.name,
               description: collection.description,
+              creator: creatorPubKey,
             })
           );
           const response = await fetch("/api/upload", {

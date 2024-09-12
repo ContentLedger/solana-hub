@@ -59,8 +59,7 @@ export async function POST(request: NextRequest) {
     },
     creators: [
       {
-        // TODO: get address from env variable
-        address: "3MuJG5Ns4egxwaBQi7szjsjCh76gLXokTyswfcHn6o1j",
+        address: metadata.creator,
         share: 100,
       },
     ],
