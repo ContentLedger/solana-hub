@@ -25,6 +25,8 @@ export type CreateCollectionDialogProps = {
   ) => void;
   collection: {
     id: string;
+    name: string;
+    duration: number;
     items: Array<{
       name: string;
       description: string;
@@ -60,12 +62,8 @@ export function CreateCollectionContent({
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
 
-      const collectionName = `collection-${collection.id}`;
-      let secondsAmount = prompt(
-        "Please enter the amount of seconds to close the auction",
-        "360"
-      );
-      const secondsToClose = secondsAmount ? parseInt(secondsAmount, 10) : 360;
+      const collectionName = collection.name;
+      const secondsToClose = collection.duration;
       const nftList = queries.map((query, index) => ({
         uri: query.data?.metadataUrl ?? "",
         name: `${collectionName} #${index}`,

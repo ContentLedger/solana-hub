@@ -47,7 +47,7 @@ export default function Collection({ params }: CreateProps) {
   );
 
   const handleAdd = useCallback(() => {
-    update(collection.id, collection.name, {
+    update(collection.id, collection.name, collection.duration, {
       name: "",
       description: "",
       image: "",
@@ -56,14 +56,20 @@ export default function Collection({ params }: CreateProps) {
 
   const handleItemChange = useCallback(
     (data: CharacterCardData) => {
-      update(collection.id, collection.name, data, collection.items.length - 1);
+      update(
+        collection.id,
+        collection.name,
+        collection.duration,
+        data,
+        collection.items.length - 1
+      );
     },
     [update, collection]
   );
 
   const handleCollectionChange = useCallback(
-    (name: string) => {
-      update(collection.id, name);
+    (name: string, duration: number) => {
+      update(collection.id, name, duration);
     },
     [update, collection]
   );
@@ -123,6 +129,7 @@ export default function Collection({ params }: CreateProps) {
         <aside className="mt-8 basis-1/4">
           <CreateCollectionDetails
             name={collection.name}
+            duration={collection.duration}
             onChange={handleCollectionChange}
           />
         </aside>

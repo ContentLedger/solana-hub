@@ -8,6 +8,7 @@ import { useEffect } from "react";
 type Collection = {
   id: string;
   name: string;
+  duration: number;
   txHash?: string;
   createdAt: string;
   publishedAt?: string;
@@ -38,6 +39,7 @@ type AppState = {
       update: (
         id: string,
         name: string,
+        dur: number,
         item?: Collection["items"][0],
         idx?: number
       ) => void;
@@ -83,6 +85,7 @@ export const useAppState = create(
                   [id]: {
                     id,
                     name,
+                    duration: 360,
                     createdAt: new Date().toISOString(),
                     items: [{ name: "", description: "", image: "" }],
                     meta: [],
@@ -94,7 +97,7 @@ export const useAppState = create(
             return id;
           },
 
-          update: (id, name, item, idx) => {
+          update: (id, name, duration, item, idx) => {
             if (idx === undefined) {
               set((state) => ({
                 ...state,
@@ -106,6 +109,7 @@ export const useAppState = create(
                       ? {
                           ...state.collections.drafts[id],
                           name,
+                          duration,
                           items: item
                             ? [...state.collections.drafts[id].items, item]
                             : state.collections.drafts[id].items,
@@ -113,6 +117,7 @@ export const useAppState = create(
                       : {
                           id,
                           name,
+                          duration,
                           createdAt: new Date().toISOString(),
                           items: item ? [item] : [],
                           meta: [],
@@ -140,6 +145,7 @@ export const useAppState = create(
                       : {
                           id,
                           name,
+                          duration,
                           createdAt: new Date().toISOString(),
                           items: item ? [item] : [],
                           meta: [],
