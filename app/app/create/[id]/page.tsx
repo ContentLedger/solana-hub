@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+} from "@/components/ui/breadcrumb";
 import {
   CharacterCard,
   CharacterCardData,
@@ -13,23 +19,24 @@ import {
 } from "@/components/create/create-collection-dialog";
 import { AlertDialog, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CreateCollectionDetails } from "@/components/create/create-collection-details";
+import { redirect, useRouter } from "next/navigation";
+import Link from "next/link";
 
-export default function Create() {
-  const { drafts, activeDraft } = useAppState((state) => state.collections);
-  const { create, update, destroy, publish } = useAppState(
-    (state) => state.actions.collection
+type CreateProps = {
+  params: {
+    id: string;
+  };
+};
+
+export default function Collection({ params }: CreateProps) {
+  const router = useRouter();
+  const collection = useAppState(
+    (state) => state.collections.drafts[params.id]
   );
+  if (!collection) redirect("/");
+
+  const { update, publish } = useAppState((state) => state.actions.collection);
   const [submit, setSubmit] = useState(false);
-
-  useEffect(() => {
-    return () => destroy(activeDraft);
-  }, [create, destroy, activeDraft]);
-
-  const collection = useMemo(() => {
-    if (activeDraft && drafts[activeDraft]) return drafts[activeDraft];
-    create("New Collection");
-    return { name: "", id: "", items: [] };
-  }, [activeDraft, create, drafts]);
 
   const createEnabled = useMemo(
     () =>
@@ -40,37 +47,62 @@ export default function Create() {
   );
 
   const handleAdd = useCallback(() => {
-    update(collection.id, { name: "", description: "", image: "" });
+    update(collection.id, collection.name, collection.duration, {
+      name: "",
+      description: "",
+      image: "",
+    });
   }, [update, collection]);
 
-  const handleChange = useCallback(
+  const handleItemChange = useCallback(
     (data: CharacterCardData) => {
-      update(collection.id, data, collection.items.length - 1);
+      update(
+        collection.id,
+        collection.name,
+        collection.duration,
+        data,
+        collection.items.length - 1
+      );
+    },
+    [update, collection]
+  );
+
+  const handleCollectionChange = useCallback(
+    (name: string, duration: number) => {
+      update(collection.id, name, duration);
     },
     [update, collection]
   );
 
   const handleCompleted = useCallback(
-    (id: string, results: CreateCollectionResults) => {
+    (id: string, txHash: string, results: CreateCollectionResults) => {
       console.log("Collection created", id, results);
-      publish(id, results);
-      setSubmit(false);
+      publish(id, txHash, results);
+      setTimeout(() => router.push(`/collection/${id}`), 1);
     },
-    [publish]
+    [publish, router]
   );
 
   return (
     <div className="flex flex-col p-8">
-      <h1 className="text-2xl font-bold">New Collection</h1>
-      <div className="flex">
-        <main className="flex-1">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem className="text-2xl font-bold">
+            <BreadcrumbLink asChild>
+              <Link href="/create">{collection.name || "New Collection"}</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div className="flex gap-8">
+        <main className="basis-3/4">
           <div className="flex flex-col gap-4 mt-8">
             {collection.items.map((data, index) => (
               <CharacterCard
-                key={index}
+                key={`${collection.id}-${index}`}
                 {...data}
                 editable={index === collection.items.length - 1}
-                onChange={handleChange}
+                onChange={handleItemChange}
                 onAdd={handleAdd}
               />
             ))}
@@ -94,8 +126,12 @@ export default function Create() {
             </AlertDialog>
           </div>
         </main>
-        <aside className="p-8 flex-2">
-          <CreateCollectionDetails name={collection.name} />
+        <aside className="mt-8 basis-1/4">
+          <CreateCollectionDetails
+            name={collection.name}
+            duration={collection.duration}
+            onChange={handleCollectionChange}
+          />
         </aside>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import { ImageWithFallback } from "../image-with-fallback";
 import { Collection } from "@/hooks/useCreateCollectionQuery";
 import { ImageIcon } from "@radix-ui/react-icons";
+import { pluralize } from "@/lib/utils";
 
 export type CollectionImageCardProps = {
   item: Collection;
@@ -23,8 +24,12 @@ export function CollectionImageCard({ item, count }: CollectionImageCardProps) {
         </ImageWithFallback>
       </AspectRatio>
       <div className="flex flex-col items-center justify-center p-2">
-        <h3 className="text-lg font-semibold">Collection Name</h3>
-        {count ? <p className="text-sm text-gray-500">{count} items</p> : null}
+        <h3 className="text-lg font-semibold">{item.name}</h3>
+        {count ? (
+          <p className="text-sm text-gray-500">
+            {pluralize(count, "item", "items")}
+          </p>
+        ) : null}
       </div>
     </div>
   );
