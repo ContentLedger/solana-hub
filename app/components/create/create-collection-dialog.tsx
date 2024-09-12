@@ -10,10 +10,11 @@ import {
 import { Label } from "../ui/label";
 import { useCreateCollectionQuery } from "@/hooks/useCreateCollectionQuery";
 import { Progress } from "../ui/progress";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAnchorProvider } from "@/components/anchor-wallet-provider";
 import { registerCollection } from "@/lib/solanaHubProgram";
 import { pluralize } from "@/lib/utils";
+import { UpdateIcon } from "@radix-ui/react-icons";
 
 export type CreateCollectionDialogProps = {
   submit?: boolean;
@@ -41,12 +42,19 @@ export function CreateCollectionContent({
   collection,
   onCompleted,
 }: Pick<CreateCollectionDialogProps, "collection" | "onCompleted">) {
+  const [pending, setPending] = useState(true);
   const provider = useAnchorProvider();
   const { progress, isSuccess, isError, queries } = useCreateCollectionQuery(
     collection.id,
     collection.items,
     provider.publicKey?.toBase58() ?? ""
   );
+
+  useEffect(() => {
+    if (isSuccess || isError) {
+      setPending(false);
+    }
+  }, [isSuccess, isError]);
 
   const handlePublish = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -64,6 +72,7 @@ export function CreateCollectionContent({
         symbol: "solana_hub",
       }));
 
+      setPending(true);
       registerCollection(
         collectionName,
         secondsToClose,
@@ -100,11 +109,18 @@ export function CreateCollectionContent({
           />
         </div>
       </div>
-      <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction onClick={handlePublish} disabled={!isSuccess}>
-          Publish
-        </AlertDialogAction>
+      <AlertDialogFooter className="flex sm:justify-between">
+        <div className="flex items-center space-x-2">
+          {pending && (
+            <UpdateIcon className="animate-spin w-5 h-5 text-muted-foreground" />
+          )}
+        </div>
+        <div className="flex items-center space-x-2">
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handlePublish} disabled={!isSuccess}>
+            Publish
+          </AlertDialogAction>
+        </div>
       </AlertDialogFooter>
     </AlertDialogContent>
   );
