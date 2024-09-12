@@ -132,7 +132,7 @@ pub mod solana_hub {
                 return Ok(());
             }
 
-            require!((nft_id as usize) < ctx.accounts.auction.nft_list.len(), ErrorCode::InvalidNftId);
+            require!((nft_id as usize) <= ctx.accounts.auction.nft_list.len(), ErrorCode::InvalidNftId);
         
             let metadata = ctx.accounts.auction.nft_list.get(nft_id as usize-1);
 
