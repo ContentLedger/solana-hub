@@ -14,7 +14,7 @@ export default function Home() {
   const collections = useAppState((state) => state.collections.published);
 
   return (
-    <div className="flex justify-stretch">
+    <div className="flex">
       <main className="flex-1 p-8">
         <Breadcrumb>
           <BreadcrumbList>
@@ -25,7 +25,7 @@ export default function Home() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="flex gap-8 mt-8">
+        <div className="flex flex-wrap gap-8 mt-8">
           {Object.values(collections)
             .filter((c) => c !== undefined)
             .map((collection) => (
