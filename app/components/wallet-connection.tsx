@@ -91,7 +91,7 @@ export function WalletConnection() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex gap-2 bg-background text-foreground border-2 border-foreground font-slackey md:w-[260px] w-[210px]"
+                  className="flex gap-2 bg-background text-foreground border-2 border-foreground font-slackey md:w-[270px] w-[220px]"
                 >
                   <AvatarSNS publicKey={publicKey} />
                   <div className="md:w-[150px] w-[100px]">
@@ -106,7 +106,7 @@ export function WalletConnection() {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="md:w-[260px] w-[210px]">
+              <DropdownMenuContent className="md:w-[270px] w-[220px]">
                 <DropdownMenuItem onClick={handleDisconnect}>
                   Disconnect
                 </DropdownMenuItem>

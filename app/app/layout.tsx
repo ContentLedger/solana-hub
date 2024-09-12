@@ -32,7 +32,7 @@ export default function RootLayout({
                 <div className="min-h-screen">
                   <Header className="sticky top-0 z-50" />
                   <main>{children}</main>
-                  <footer className="flex gap-6 flex-wrap items-center justify-center py-4 sticky top-[100vh] text-muted-foreground">
+                  <footer className="flex gap-8 flex-wrap items-center justify-center py-4 sticky top-[100vh] text-muted-foreground">
                     2024 © Content Ledger
                   </footer>
                 </div>
