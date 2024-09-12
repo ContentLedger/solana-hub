@@ -1,5 +1,5 @@
 import { AnchorProvider, Program, BN, Idl } from "@coral-xyz/anchor";
-import { PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import solanaHubIDL from "../idls/solana_hub.json";
 import { SolanaHub } from "@/idls/solana_hub";
 
@@ -96,9 +96,16 @@ export const bid = async (
     const latestBlockhash = await provider.connection.getLatestBlockhash();
     const program = new Program<SolanaHub>(solanaHubIDL as SolanaHub, provider);
 
+    let nftAuctionAccount = null;
     const nftAuctionPubkey = deriveNftAuctionPubkey(collectionName, nftId, program);
-    const nftAuctionAccount = await program.account.nftAuction.fetch(nftAuctionPubkey)
-    const prevBidder = nftAuctionAccount.bidder.toString()
+    try {
+        nftAuctionAccount = (await program.account.nftAuction.fetch(nftAuctionPubkey)).bidder;
+    }
+    catch (error) {
+        nftAuctionAccount = new Keypair().publicKey;
+    }
+
+    const prevBidder = nftAuctionAccount.toString()
 
     const txSignature = await program.methods
         .bid(collectionName, nftId, new BN(bidAmount))
@@ -120,7 +127,7 @@ export const bid = async (
 };
 
 export const claim = async (
-    nftName: string,
+    collectionName: string,
     nftId: number,
     provider: AnchorProvider
 ) => {
@@ -130,9 +137,9 @@ export const claim = async (
 
     const latestBlockhash = await provider.connection.getLatestBlockhash();
     const program = new Program<SolanaHub>(solanaHubIDL as SolanaHub, provider);
-    const metadata = deriveMetadataPubkey(nftName, nftId, program);
+    const metadata = deriveMetadataPubkey(collectionName, nftId, program);
     const txSignature = await program.methods
-        .claim(nftName, nftId)
+        .claim(collectionName, nftId)
         .accounts({
             metadata,
             claimer: provider.publicKey

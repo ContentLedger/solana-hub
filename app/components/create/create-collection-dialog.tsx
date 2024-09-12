@@ -11,7 +11,7 @@ import { Label } from "../ui/label";
 import { useCreateCollectionQuery } from "@/hooks/useCreateCollectionQuery";
 import { Progress } from "../ui/progress";
 import { useCallback } from "react";
-import { useAnchorProvider } from "../anchor-wallet-provider";
+import { useAnchorProvider } from "@/components/anchor-wallet-provider";
 import { registerCollection } from "@/lib/solanaHubProgram";
 
 export type CreateCollectionDialogProps = {
