@@ -80,7 +80,7 @@ export default function Collection({ params }: CreateProps) {
       publish(id, txHash, results);
       setTimeout(() => router.push(`/collection/${id}`), 1);
     },
-    [publish]
+    [publish, router]
   );
 
   return (

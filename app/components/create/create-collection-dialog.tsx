@@ -62,7 +62,7 @@ export function CreateCollectionContent({
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
 
-      const collectionName = collection.name;
+      const collectionName = `collection-${collection.id}`;
       const secondsToClose = collection.duration;
       const nftList = queries.map((query, index) => ({
         uri: query.data?.metadataUrl ?? "",
@@ -86,7 +86,7 @@ export function CreateCollectionContent({
         );
       });
     },
-    [collection.id, onCompleted, queries]
+    [collection, onCompleted, provider, queries]
   );
 
   return (

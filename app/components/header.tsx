@@ -29,7 +29,7 @@ export function Header({ className }: HeaderProps) {
       const id = create("New Collection");
       router.push(`/create/${id}`);
     },
-    [create]
+    [create, router]
   );
 
   return (
