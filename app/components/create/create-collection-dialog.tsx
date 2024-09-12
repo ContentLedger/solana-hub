@@ -13,10 +13,15 @@ import { Progress } from "../ui/progress";
 import { useCallback } from "react";
 import { useAnchorProvider } from "@/components/anchor-wallet-provider";
 import { registerCollection } from "@/lib/solanaHubProgram";
+import { pluralize } from "@/lib/utils";
 
 export type CreateCollectionDialogProps = {
   submit?: boolean;
-  onCompleted?: (key: string, results: CreateCollectionResults) => void;
+  onCompleted?: (
+    key: string,
+    txHash: string,
+    results: CreateCollectionResults
+  ) => void;
   collection: {
     id: string;
     items: Array<{
@@ -64,10 +69,10 @@ export function CreateCollectionContent({
         secondsToClose,
         nftList,
         provider
-      ).then((value: string) => {
-        console.log("Transaction sent", value);
+      ).then((txHash: string) => {
         onCompleted?.(
           collection.id,
+          txHash,
           queries.map(
             (query) => query?.data ?? { metadataUrl: "", imageUrl: "" }
           )
@@ -83,14 +88,14 @@ export function CreateCollectionContent({
         <AlertDialogTitle>Creating Collection</AlertDialogTitle>
       </AlertDialogHeader>
       <AlertDialogDescription>
-        {queries.length} items in collection
+        {`${pluralize(queries.length, "item", "items")} in collection`}
         {isSuccess ? " - Ready to publish" : isError ? " - Failed" : ""}
       </AlertDialogDescription>
       <div className="flex items-center space-x-2">
         <div className="grid flex-1 gap-2">
           <Label className="sr-only">Progress</Label>
           <Progress
-            value={(progress / collection.items.length) * 100}
+            value={(progress / queries.length) * 100}
             className="w-full"
           />
         </div>

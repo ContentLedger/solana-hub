@@ -8,7 +8,9 @@ import { useEffect } from "react";
 type Collection = {
   id: string;
   name: string;
+  txHash?: string;
   createdAt: string;
+  publishedAt?: string;
   items: Array<{
     name: string;
     description: string;
@@ -33,9 +35,14 @@ type AppState = {
   actions: {
     collection: {
       create: (name: string) => string;
-      update: (id: string, item: Collection["items"][0], idx?: number) => void;
+      update: (
+        id: string,
+        name: string,
+        item?: Collection["items"][0],
+        idx?: number
+      ) => void;
       destroy: (id: string | null) => void;
-      publish: (id: string, meta: Collection["meta"]) => void;
+      publish: (id: string, txHash: string, meta: Collection["meta"]) => void;
     };
   };
 };
@@ -87,7 +94,7 @@ export const useAppState = create(
             return id;
           },
 
-          update: (id, item, idx) => {
+          update: (id, name, item, idx) => {
             if (idx === undefined) {
               set((state) => ({
                 ...state,
@@ -98,13 +105,16 @@ export const useAppState = create(
                     [id]: state.collections.drafts[id]
                       ? {
                           ...state.collections.drafts[id],
-                          items: [...state.collections.drafts[id].items, item],
+                          name,
+                          items: item
+                            ? [...state.collections.drafts[id].items, item]
+                            : state.collections.drafts[id].items,
                         }
                       : {
                           id,
-                          name: "",
+                          name,
                           createdAt: new Date().toISOString(),
-                          items: [item],
+                          items: item ? [item] : [],
                           meta: [],
                         },
                   },
@@ -123,15 +133,15 @@ export const useAppState = create(
                           items: [
                             ...state.collections.drafts[id].items.map(
                               (data, i) =>
-                                i === idx ? { ...data, ...item } : data
+                                item && i === idx ? { ...data, ...item } : data
                             ),
                           ],
                         }
                       : {
                           id,
-                          name: "",
+                          name,
                           createdAt: new Date().toISOString(),
-                          items: [item],
+                          items: item ? [item] : [],
                           meta: [],
                         },
                   },
@@ -168,11 +178,13 @@ export const useAppState = create(
             }));
           },
 
-          publish: (id, meta) => {
+          publish: (id, txHash, meta) => {
             set((state) => {
               const draft = state.collections.drafts[id];
               if (!draft) return state;
               draft.items = draft.items.slice(0, meta.length);
+              draft.txHash = txHash;
+              draft.publishedAt = new Date().toISOString();
               draft.meta = [...meta];
               return {
                 ...state,
